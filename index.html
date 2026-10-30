@@ -202,7 +202,7 @@ document.querySelectorAll('aside .nav').forEach(b=>b.onclick=()=>{view=b.dataset
 $('#modal').onclick=e=>{if(e.target.id==='modal')closeM()};
 const closeM=()=>$('#modal').classList.remove('on');
 const openM=h=>{$('#sheet').innerHTML=h;$('#modal').classList.add('on')};
-function render(){if(!ME)return;if((view==='admin'||view==='review')&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,top,admin}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
+function render(){if(!ME)return;if((view==='admin'||view==='review')&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,top:topPage,admin}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
 function head(t,s,act=''){return`<div class="row" style="justify-content:space-between"><div><h1>${t}</h1><p class="sub">${s}</p></div>${act}</div>`}
 
 /* ============ หน้าแรก: ภาพรวมคอนเทนต์ ============ */
@@ -373,7 +373,7 @@ window.after_ins=()=>{chartPlatform('c1');
  charts.push(new Chart($('#c4'),{type:'doughnut',data:{labels:CT.map(s=>s[1]),datasets:[{data:CT.map(([k])=>S.contents.filter(c=>c.status===k).length),backgroundColor:CT.map(s=>s[2])}]}}))};
 
 /* ============ คอนเทนต์ยอดนิยม 1 ถึง 3 ============ */
-function top(){
+function topPage(){
  const G={};entries(pfv,tpv).forEach(e=>(G[e.c.id]=G[e.c.id]||{c:e.c,list:[]}).list.push(e));
  const R=Object.values(G).map(g=>({...g,a:agg(g.list)})).filter(g=>g.a[tm]>0).sort((x,y)=>y.a[tm]-x.a[tm]).slice(0,3);
  const M=[['eng','ยอดปฏิสัมพันธ์'],['reach','การเข้าถึง (Reach)'],['rate','Engagement rate']];
