@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Behind Ranprajam Burger</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍔</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<style>
+:root{--y:#FFCC00;--o:#F94D12;--ink:#2B1B12;--mut:#7a6a60;--line:#f0e6cf;--soft:#FFF8DC;--bg:#fff}
+*{box-sizing:border-box}
+body{margin:0;font-family:'Noto Sans Thai',system-ui,sans-serif;background:var(--bg);color:var(--ink);display:flex;min-height:100vh}
+button,input,select,textarea{font:inherit;color:inherit}
+aside{width:236px;background:var(--y);padding:20px 14px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.brand{display:flex;gap:10px;align-items:center;margin-bottom:18px;font-weight:800;line-height:1.15}
+.brand small{display:block;font-weight:500;font-size:11px}
+aside button.nav{background:none;border:0;text-align:left;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:500}
+aside button.nav:hover{background:#ffffff66}
+aside button.nav.on{background:var(--o);color:#fff;font-weight:700}
+aside button:focus-visible,.btn:focus-visible,.chip:focus-visible,.cc:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+main{flex:1;padding:28px 32px;min-width:0;max-width:1200px}
+h1{font-size:26px;margin:0 0 4px;font-weight:800}
+.sub{color:var(--mut);margin:0 0 22px}
+.btn{background:var(--o);color:#fff;border:0;padding:9px 16px;border-radius:999px;cursor:pointer;font-weight:700}
+.btn.alt{background:var(--y);color:var(--ink)}
+.btn.ghost{background:#fff;color:var(--ink);border:1.5px solid var(--line)}
+.btn.sm{padding:4px 10px;font-size:12px}
+.btn[disabled]{opacity:.6;cursor:wait}
+.grid{display:grid;gap:14px}
+.kpis{grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:18px}
+.kpi{border:1.5px solid var(--line);border-radius:14px;padding:14px 16px;background:#fff}
+.kpi b{display:block;font-size:30px;color:var(--o);font-weight:800}
+.kpi span{color:var(--mut);font-size:13px}
+.card{border:1.5px solid var(--line);border-radius:14px;padding:16px;background:#fff}
+.card h3{margin:0 0 10px;font-size:16px}
+.two{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.board{grid-template-columns:repeat(4,minmax(220px,1fr));overflow-x:auto;align-items:start}
+.col{background:var(--soft);border-radius:14px;padding:10px;min-height:200px}
+.col h4{margin:2px 4px 10px;display:flex;justify-content:space-between}
+.col h4 i{font-style:normal;background:var(--y);border-radius:99px;padding:0 9px;font-size:13px}
+.task{background:#fff;border:1.5px solid var(--line);border-radius:12px;padding:10px;margin-bottom:8px;cursor:pointer}
+.task:hover{border-color:var(--o)}
+.task p{margin:0 0 6px;font-weight:700}
+.tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:99px;background:var(--soft);margin-right:4px}
+.tag.hi{background:var(--o);color:#fff}.tag.late{background:#ffd9cc;color:#b02a00}
+.bar{height:6px;background:var(--line);border-radius:9px;margin-top:6px;overflow:hidden}.bar i{display:block;height:100%;background:var(--o)}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:8px 6px;border-bottom:1px solid var(--line)}
+th{color:var(--mut);font-weight:500}
+.tw{overflow-x:auto}
+form.f{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-bottom:14px;align-items:end}
+label{font-size:12px;color:var(--mut);display:block}
+input,select,textarea{width:100%;padding:8px 10px;border:1.5px solid var(--line);border-radius:10px;background:#fff}
+input:focus,select:focus,textarea:focus{outline:2px solid var(--y);border-color:var(--o)}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .h{text-align:center;color:var(--mut);font-size:12px}
+.day{min-height:84px;border:1.5px solid var(--line);border-radius:10px;padding:4px;font-size:12px;overflow:hidden}
+.day.today{border-color:var(--o);background:var(--soft)}
+.ev{display:block;border-radius:6px;padding:1px 5px;margin-top:2px;background:var(--y);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+.ev.p{background:var(--o);color:#fff}
+.ev.c{background:#ffb347}
+.modal{position:fixed;inset:0;background:#2b1b1299;display:none;align-items:center;justify-content:center;padding:16px;z-index:9}
+.modal.on{display:flex}
+.sheet{background:#fff;border-radius:18px;width:min(640px,100%);max-height:92vh;overflow:auto;padding:22px;border-top:8px solid var(--y)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.cm{background:var(--soft);border-radius:10px;padding:8px 10px;margin:6px 0;font-size:14px}
+.cm small{color:var(--mut)}
+.ins{border-left:5px solid var(--o);background:var(--soft);padding:10px 14px;border-radius:0 10px 10px 0;margin-bottom:10px}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--ink);color:#fff;padding:10px 16px;border-radius:12px;display:none;z-index:199;max-width:340px}
+canvas{max-height:280px}
+.chip{border:1.5px solid var(--line);background:#fff;border-radius:99px;padding:6px 14px;cursor:pointer;font-weight:500}
+.chip.on{background:var(--o);border-color:var(--o);color:#fff;font-weight:700}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+.cc{border:1.5px solid var(--line);background:#fff;border-radius:16px;padding:0;text-align:left;cursor:pointer;overflow:hidden;display:flex;flex-direction:column}
+.cc:hover{border-color:var(--o)}
+.ci{aspect-ratio:4/3;background:var(--soft);display:flex;align-items:center;justify-content:center;font-size:44px;overflow:hidden}
+.ci img{width:100%;height:100%;object-fit:cover}
+.cb{padding:12px;display:grid;gap:5px;width:100%}
+.cb b{font-size:16px}
+.cb p{margin:0;color:var(--mut);font-size:13px;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cb small{color:var(--mut)}
+.st{justify-self:start;font-size:12px;font-weight:700;padding:2px 10px;border-radius:99px}
+#auth{position:fixed;inset:0;background:#fff;z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;overflow:auto}
+.authbox{width:min(420px,100%);border:1.5px solid var(--line);border-top:8px solid var(--y);border-radius:18px;padding:26px}
+.authbox h1{font-size:22px;margin:10px 0 2px}
+.tabs{display:flex;gap:6px;margin:0 0 14px}.tabs button{flex:1}
+.ubox{margin-top:auto;border-top:1.5px solid #00000022;padding-top:12px;font-size:13px}
+.ubox b{display:block}
+.badge{display:inline-block;background:var(--o);color:#fff;border-radius:99px;font-size:11px;padding:0 7px;margin-left:4px}
+.ok{color:#1d7a46!important}
+.link{background:none;border:0;color:var(--o);cursor:pointer;padding:0;text-decoration:underline;font-size:13px}
+@media(max-width:800px){body{flex-direction:column}aside{width:100%;height:auto;position:static;flex-direction:row;flex-wrap:wrap}.brand{width:100%;margin:0}main{padding:18px}}
+</style>
+</head>
+<body>
+<aside>
+  <div class="brand">
+    <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><rect width="42" height="42" rx="10" fill="#fff"/><path d="M21 6C12 6 8 13 7 19h14z" fill="#F94D12"/><rect x="8" y="22" width="13" height="6" rx="2" fill="#F94D12"/><path d="M9 31l12 4v1C14 36 9 34 9 31z" fill="#F94D12"/></svg>
+    <div>Behind<small>Ranprajam Burger</small></div>
+  </div>
+  <button class="nav on" data-v="dash">ภาพรวมคอนเทนต์</button>
+  <button class="nav" data-v="board">บอร์ดงาน</button>
+  <button class="nav" data-v="cal">ตารางคอนเทนต์</button>
+  <button class="nav" data-v="review" id="navReview" style="display:none">ตรวจงาน</button>
+  <button class="nav" data-v="posts">ผลโพสต์</button>
+  <button class="nav" data-v="ins">ข้อมูลเชิงลึก</button>
+  <button class="nav" data-v="admin" id="navAdmin" style="display:none">จัดการผู้ใช้<span id="pend"></span></button>
+  <div class="ubox" id="ubox"></div>
+</aside>
+<main id="app"></main>
+<div id="auth"></div>
+<div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ ตั้งค่า Supabase (แก้แค่ 2 บรรทัดนี้) ============ */
+const SUPABASE_URL='https://pfpgecavzrrbathvdimg.supabase.co';
+const SUPABASE_KEY='sb_publishable_1T8cxx8qFEPQnlWcHKh_IA_s9-H9jZ2';
+/* ================================================================ */
+
+const ST=[['todo','รอทำ'],['doing','กำลังทำ'],['review','รอตรวจ'],['done','เสร็จแล้ว']];
+const CT=[['idea','ไอเดีย','#e9e2cf'],['draft','ร่างแคปชัน','#ffe066'],['shoot','กำลังผลิต','#ffb347'],['review','รอตรวจ','#ff8a3d'],['ready','พร้อมโพสต์','#F94D12'],['posted','โพสต์แล้ว','#2e9e5b']];
+const PF=['Facebook','Instagram','TikTok','LINE OA','X'];
+const TABLES=['contents','tasks','posts'];
+const td=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const configured=!/YOUR-/.test(SUPABASE_URL+SUPABASE_KEY);
+const sb=configured?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
+let S={contents:[],tasks:[],posts:[]},PR=[],ME=null,view='dash',calM=new Date(),charts=[],cf='all',tmpImg='',chan=null,tmr=null;
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const $=s=>document.querySelector(s);
+const isAdmin=()=>!!ME&&ME.role==='admin';
+function toast(m){const t=$('#toast');t.textContent=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',3200)}
+const prog=t=>t.chk.length?Math.round(t.chk.filter(c=>c.d).length/t.chk.length*100):(t.status==='done'?100:0);
+const late=t=>t.status!=='done'&&t.due&&t.due<td();
+const eng=p=>p.reach?(p.likes+p.cmt+p.shr)/p.reach*100:0;
+const fmt=n=>Number(n).toLocaleString('th-TH');
+
+/* ============ ชั้นข้อมูล (Supabase) ============ */
+async function loadAll(){
+ const rs=await Promise.all(TABLES.map(t=>sb.from(t).select('id,data').order('id')));
+ rs.forEach((r,i)=>{if(r.error)toast('โหลดข้อมูลไม่สำเร็จ: '+r.error.message);else S[TABLES[i]]=r.data.map(x=>({...x.data,id:x.id}))});
+ if(isAdmin()){const r=await sb.from('profiles').select('*').order('created_at');if(!r.error)PR=r.data}
+}
+async function put(t,o){const {id,...d}=o;let r;
+ if(id)r=await sb.from(t).update({data:d}).eq('id',id).select('id');
+ else r=await sb.from(t).insert({data:d}).select('id').single();
+ if(r.error){toast('บันทึกไม่สำเร็จ: '+r.error.message);return false}
+ if(id&&!r.data.length){toast('ไม่มีสิทธิ์แก้ไขรายการนี้ หรือรายการถูกลบไปแล้ว');return false}
+ if(!id)o.id=r.data.id;return true}
+async function del(t,id){const r=await sb.from(t).delete().eq('id',id).select('id');
+ if(r.error||!r.data.length){toast('ลบไม่สำเร็จ (เฉพาะแอดมินที่ลบได้)');return false}return true}
+async function commit(t,o,after){if(await put(t,o)){await loadAll();render();if(after)after()}}
+function onChange(){clearTimeout(tmr);tmr=setTimeout(async()=>{await loadAll();pendBadge();const a=document.activeElement;if(a&&$('#app').contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;render()},500)}
+
+/* ============ UI พื้นฐาน ============ */
+document.querySelectorAll('aside .nav').forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll('aside .nav').forEach(x=>x.classList.toggle('on',x===b));render()});
+$('#modal').onclick=e=>{if(e.target.id==='modal')closeM()};
+const closeM=()=>$('#modal').classList.remove('on');
+const openM=h=>{$('#sheet').innerHTML=h;$('#modal').classList.add('on')};
+function render(){if(!ME)return;if((view==='admin'||view==='review')&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,posts,ins,admin}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
+function head(t,s,act=''){return`<div class="row" style="justify-content:space-between"><div><h1>${t}</h1><p class="sub">${s}</p></div>${act}</div>`}
+
+/* ============ หน้าแรก: ภาพรวมคอนเทนต์ ============ */
+const stOf=k=>CT.find(x=>x[0]===k)||CT[0];
+function cCard(c){const [,l,col]=stOf(c.status);
+ return`<button class="cc" onclick="openContent(${c.id})"><div class="ci">${c.img?`<img src="${c.img}" alt="">`:'🍔'}</div><div class="cb"><span class="st" style="background:${col};color:${['review','ready','posted'].includes(c.status)?'#fff':'var(--ink)'}">${l}</span><b>${esc(c.title)}</b><p>${esc(c.cap)||'ยังไม่มีแคปชัน'}</p><small>${esc(c.pf)}${c.date?' · '+c.date:' · ยังไม่กำหนดวัน'}</small></div></button>`}
+function dash(){
+ const C=S.contents.filter(c=>cf==='all'||c.status===cf).sort((a,b)=>(a.date||'9').localeCompare(b.date||'9'));
+ const T=S.tasks,done=T.filter(t=>t.status==='done').length,P=S.posts;
+ const avg=P.length?(P.reduce((a,p)=>a+eng(p),0)/P.length).toFixed(1):0;
+ return head('Behind Ranprajam Burger','ภาพรวมคอนเทนต์ทั้งหมด กดที่การ์ดเพื่อดูหรือแก้ไข',`<button class="btn" onclick="openContent()">+ เพิ่มคอนเทนต์</button>`)+
+ `<div class="row" style="margin-bottom:14px"><button class="chip ${cf==='all'?'on':''}" onclick="cf='all';render()">ทั้งหมด ${S.contents.length}</button>${CT.map(([k,l])=>`<button class="chip ${cf===k?'on':''}" onclick="cf='${k}';render()">${l} ${S.contents.filter(c=>c.status===k).length}</button>`).join('')}</div>
+ <div class="cgrid">${C.map(cCard).join('')||'<div class="card"><p class="sub" style="margin:0">ยังไม่มีคอนเทนต์ในสถานะนี้ กด "+ เพิ่มคอนเทนต์" เพื่อเริ่มวางไอเดีย</p></div>'}</div>
+ <h2 style="margin:30px 0 12px">สรุปงานและผลโพสต์</h2>
+ <div class="grid kpis"><div class="kpi"><b>${T.length-done}</b><span>งานที่ยังไม่เสร็จ</span></div>
+ <div class="kpi"><b>${T.filter(late).length}</b><span>งานเลยกำหนด</span></div>
+ <div class="kpi"><b>${S.contents.filter(c=>c.status==='ready').length}</b><span>คอนเทนต์พร้อมโพสต์</span></div>
+ <div class="kpi"><b>${avg}%</b><span>Engagement เฉลี่ย</span></div></div>
+ <div class="card"><h3>Reach ต่อโพสต์</h3><canvas id="c1"></canvas></div>`}
+window.after_dash=()=>chartReach('c1');
+function prevImg(){$('#c_prev').innerHTML=tmpImg?`<img src="${tmpImg}" alt="">`:'🍔'}
+function pickImg(i){const f=i.files[0];if(!f)return;const r=new FileReader();
+ r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,640/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);tmpImg=c.toDataURL('image/jpeg',.72);prevImg()};im.onerror=()=>toast('เปิดรูปนี้ไม่ได้');im.src=r.result};r.readAsDataURL(f)}
+function openContent(id){
+ const c=S.contents.find(x=>x.id===id)||{id:0,title:'',cap:'',img:'',pf:PF[0],date:td(3),status:'idea',note:''};tmpImg=c.img||'';
+ openM(`<h2 style="margin-top:0">${id?'แก้ไขคอนเทนต์':'เพิ่มคอนเทนต์ใหม่'}</h2><div class="grid" style="gap:10px">
+ <div><label>ชื่อคอนเทนต์</label><input id="c_t" value="${esc(c.title)}"></div>
+ <div><label>รูปตัวอย่าง</label><div id="c_prev" class="ci" style="aspect-ratio:auto;height:190px;border-radius:12px"></div>
+ <div class="row" style="margin-top:6px"><label class="btn sm ghost" style="cursor:pointer;margin:0">เลือกรูป<input type="file" accept="image/*" style="display:none" onchange="pickImg(this)"></label><button class="btn sm ghost" onclick="tmpImg='';prevImg()">ลบรูป</button></div></div>
+ <div><label>แคปชัน</label><textarea id="c_c" rows="4">${esc(c.cap)}</textarea></div>
+ <div><label>ไอเดีย / โน้ตเพิ่มเติม</label><textarea id="c_n" rows="2">${esc(c.note)}</textarea></div>
+ <div class="row"><div style="flex:1"><label>แพลตฟอร์ม</label><select id="c_pf">${PF.map(p=>`<option ${c.pf===p?'selected':''}>${p}</option>`).join('')}</select></div>
+ <div style="flex:1"><label>วันที่โพสต์</label><input type="date" id="c_d" value="${c.date}"></div>
+ <div style="flex:1"><label>สถานะ</label><select id="c_s">${CT.map(([k,l])=>`<option value="${k}" ${c.status===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
+ <div class="row" style="justify-content:space-between"><div>${id&&isAdmin()?`<button class="btn ghost" onclick="delContent(${id})">ลบ</button>`:''}</div><div class="row"><button class="btn ghost" onclick="closeM()">ปิด</button><button class="btn" onclick="saveContent(${id})">บันทึก</button></div></div></div>`);prevImg()}
+async function saveContent(id){const v=i=>$('#'+i).value;if(!v('c_t').trim())return toast('กรุณาใส่ชื่อคอนเทนต์');
+ const c=S.contents.find(x=>x.id===id)||{};
+ Object.assign(c,{title:v('c_t'),cap:v('c_c'),note:v('c_n'),pf:v('c_pf'),date:v('c_d'),status:v('c_s'),img:tmpImg});
+ if(await put('contents',c)){closeM();await loadAll();render();toast('บันทึกคอนเทนต์แล้ว')}}
+async function delContent(id){if(!isAdmin()||!confirm('ลบคอนเทนต์นี้?'))return;if(await del('contents',id)){closeM();await loadAll();render()}}
+
+/* ============ บอร์ดงาน ============ */
+function taskCard(t){return`<div class="task" onclick="openTask(${t.id})"><p>${esc(t.title)}</p><span class="tag ${t.pri==='high'?'hi':''}">${{high:'ด่วน',mid:'ปกติ',low:'ไม่รีบ'}[t.pri]}</span><span class="tag">${esc(t.who||'-')}</span>${t.due?`<span class="tag ${late(t)?'late':''}">${t.due}</span>`:''}<div class="bar"><i style="width:${prog(t)}%"></i></div></div>`}
+function board(){return head('บอร์ดงาน','ติดตามสถานะงานตั้งแต่เริ่มจนเสร็จ',`<button class="btn" onclick="openTask()">+ เพิ่มงาน</button>`)+
+ `<div class="grid board">${ST.map(([k,l])=>{const L=S.tasks.filter(t=>t.status===k);return`<div class="col"><h4>${l}<i>${L.length}</i></h4>${L.map(taskCard).join('')}</div>`}).join('')}</div>`}
+function openTask(id){
+ const t=S.tasks.find(x=>x.id===id)||{id:0,title:'',desc:'',who:ME?ME.name:'',due:td(3),status:'todo',pri:'mid',chk:[],cm:[]};
+ openM(`<h2 style="margin-top:0">${id?'รายละเอียดงาน':'เพิ่มงานใหม่'}</h2>
+ <div class="grid" style="gap:10px">
+ <div><label>ชื่องาน</label><input id="t_title" value="${esc(t.title)}"></div>
+ <div><label>รายละเอียด</label><textarea id="t_desc" rows="2">${esc(t.desc)}</textarea></div>
+ <div class="row"><div style="flex:1"><label>ผู้รับผิดชอบ</label><input id="t_who" value="${esc(t.who)}"></div>
+ <div style="flex:1"><label>กำหนดส่ง</label><input type="date" id="t_due" value="${t.due}"></div></div>
+ <div class="row"><div style="flex:1"><label>สถานะ</label><select id="t_st">${ST.map(([k,l])=>`<option value="${k}" ${t.status===k?'selected':''}>${l}</option>`).join('')}</select></div>
+ <div style="flex:1"><label>ความสำคัญ</label><select id="t_pri">${[['high','ด่วน'],['mid','ปกติ'],['low','ไม่รีบ']].map(([k,l])=>`<option value="${k}" ${t.pri===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
+ <div><label>เช็คลิสต์ (${prog(t)}%)</label><div>${t.chk.map((c,i)=>`<div class="row"><input type="checkbox" style="width:auto" ${c.d?'checked':''} onchange="tk(${t.id},${i},this.checked)"><span>${esc(c.t)}</span></div>`).join('')}</div>
+ ${id?`<div class="row" style="margin-top:6px"><input id="newchk" placeholder="เพิ่มรายการเช็ค" style="flex:1"><button class="btn sm alt" onclick="addChk(${id})">เพิ่ม</button></div>`:'<p class="sub">บันทึกงานก่อน แล้วค่อยเพิ่มเช็คลิสต์และคอมเมนต์ได้</p>'}</div>
+ ${id?`<div><label>คอมเมนต์</label>${t.cm.map(c=>`<div class="cm"><small>${esc(c.a)} · ${c.ts}</small><br>${esc(c.t)}</div>`).join('')||'<p class="sub">ยังไม่มีคอมเมนต์</p>'}
+ <div class="row"><input id="cm_t" placeholder="เขียนคอมเมนต์ในชื่อ ${esc(ME.name)}" style="flex:1"><button class="btn sm" onclick="addCm(${id})">ส่ง</button></div></div>`:''}
+ <div class="row" style="justify-content:space-between"><div>${id&&isAdmin()?`<button class="btn ghost" onclick="delTask(${id})">ลบงาน</button>`:''}</div><div class="row"><button class="btn ghost" onclick="closeM()">ปิด</button><button class="btn" onclick="saveTask(${id})">บันทึก</button></div></div></div>`)}
+async function saveTask(id){
+ const v=i=>$('#'+i).value;if(!v('t_title').trim())return toast('กรุณาใส่ชื่องาน');
+ const t=S.tasks.find(x=>x.id===id)||{chk:[],cm:[]};
+ Object.assign(t,{title:v('t_title'),desc:v('t_desc'),who:v('t_who'),due:v('t_due'),status:v('t_st'),pri:v('t_pri')});
+ if(await put('tasks',t)){closeM();await loadAll();render();toast('บันทึกงานแล้ว')}}
+async function delTask(id){if(!isAdmin()||!confirm('ลบงานนี้?'))return;if(await del('tasks',id)){closeM();await loadAll();render()}}
+function tk(id,i,d){const t=S.tasks.find(x=>x.id===id);t.chk[i].d=d?1:0;commit('tasks',t,()=>openTask(id))}
+function addChk(id){const v=$('#newchk').value.trim();if(!v)return;const t=S.tasks.find(x=>x.id===id);t.chk.push({t:v,d:0});commit('tasks',t,()=>openTask(id))}
+function addCm(id){const x=$('#cm_t').value.trim();if(!x)return;const t=S.tasks.find(y=>y.id===id);t.cm.push({a:ME.name,t:x,ts:td()});commit('tasks',t,()=>openTask(id))}
+
+/* ============ ตารางคอนเทนต์ ============ */
+function cal(){
+ const y=calM.getFullYear(),m=calM.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
+ let cells=['อา','จ','อ','พ','พฤ','ศ','ส'].map(d=>`<div class="h">${d}</div>`).join('')+'<div></div>'.repeat(first);
+ for(let d=1;d<=n;d++){const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+  cells+=`<div class="day ${ds===td()?'today':''}"><b>${d}</b>${S.contents.filter(c=>c.date===ds).map(c=>`<span class="ev c" onclick="openContent(${c.id})">${esc(c.title)}</span>`).join('')}${S.tasks.filter(t=>t.due===ds).map(t=>`<span class="ev" onclick="openTask(${t.id})">${esc(t.title)}</span>`).join('')}${S.posts.filter(p=>p.date===ds).map(p=>`<span class="ev p">${esc(p.pf)}</span>`).join('')}</div>`}
+ return head('ตารางคอนเทนต์',`${calM.toLocaleDateString('th-TH',{month:'long',year:'numeric'})} · ส้มอ่อน = คอนเทนต์, เหลือง = กำหนดส่งงาน, ส้มเข้ม = ผลโพสต์`,`<div class="row"><button class="btn ghost" onclick="calM.setMonth(calM.getMonth()-1);render()">ก่อนหน้า</button><button class="btn ghost" onclick="calM=new Date();render()">วันนี้</button><button class="btn ghost" onclick="calM.setMonth(calM.getMonth()+1);render()">ถัดไป</button></div>`)+`<div class="cal">${cells}</div>`}
+
+/* ============ ตรวจงาน (แอดมิน) ============ */
+function review(){
+ const L=S.tasks.filter(t=>t.status==='review'),C=S.contents.filter(c=>c.status==='review');
+ return head('ตรวจงาน','งานและคอนเทนต์ที่รอการอนุมัติ')+
+ (C.length?`<h3>คอนเทนต์รอตรวจ</h3>`+C.map(c=>`<div class="card" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(c.title)}</h3><span class="tag">${esc(c.pf)}</span></div><p>${esc(c.cap)||'<span class="sub">ยังไม่มีแคปชัน</span>'}</p><div class="row"><button class="btn" onclick="rvContent(${c.id},1)">ผ่าน (พร้อมโพสต์)</button><button class="btn alt" onclick="rvContent(${c.id},0)">ส่งกลับแก้ไข</button><button class="btn ghost" onclick="openContent(${c.id})">เปิดดู</button></div></div>`).join(''):'')+
+ (L.length?`<h3>งานรอตรวจ</h3>`+L.map(t=>`<div class="card" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(t.title)}</h3><span class="tag">${esc(t.who)}</span></div>
+ <p>${esc(t.desc)||'<span class="sub">ไม่มีรายละเอียด</span>'}</p><p class="sub" style="margin:0 0 8px">เช็คลิสต์ ${prog(t)}% · ${t.cm.length} คอมเมนต์</p>
+ <input id="rn${t.id}" placeholder="บันทึกผลการตรวจ / ข้อแก้ไข" style="margin-bottom:8px">
+ <div class="row"><button class="btn" onclick="doReview(${t.id},1)">ผ่าน</button><button class="btn alt" onclick="doReview(${t.id},0)">ขอแก้ไข</button><button class="btn ghost" onclick="openTask(${t.id})">เปิดงาน</button></div></div>`).join(''):'')+
+ (!L.length&&!C.length?'<div class="card"><p class="sub" style="margin:0">ไม่มีรายการรอตรวจ ตั้งสถานะ "รอตรวจ" ที่คอนเทนต์หรืองานเพื่อให้ปรากฏที่นี่</p></div>':'')}
+function rvContent(id,ok){if(!isAdmin())return;const c=S.contents.find(x=>x.id===id);c.status=ok?'ready':'draft';commit('contents',c,()=>toast(ok?'อนุมัติคอนเทนต์แล้ว':'ส่งกลับให้แก้ไขแล้ว'))}
+function doReview(id,ok){if(!isAdmin())return;const t=S.tasks.find(x=>x.id===id),n=$('#rn'+id).value;
+ t.status=ok?'done':'doing';if(n)t.cm.push({a:ME.name,t:(ok?'ผ่าน: ':'ขอแก้ไข: ')+n,ts:td()});
+ commit('tasks',t,()=>toast(ok?'อนุมัติงานแล้ว':'ส่งกลับให้แก้ไขแล้ว'))}
+
+/* ============ ผลโพสต์ ============ */
+function posts(){
+ return head('ผลตอบรับจากโพสต์','บันทึกตัวเลขหลังโพสต์ แล้วดูกราฟเปรียบเทียบ')+`
+ <form class="f card" onsubmit="addPost(event)">
+ <div><label>ชื่อโพสต์</label><input id="p_t" required></div>
+ <div><label>แพลตฟอร์ม</label><select id="p_pf">${PF.map(p=>`<option>${p}</option>`).join('')}</select></div>
+ <div><label>วันที่</label><input type="date" id="p_d" value="${td()}"></div>
+ <div><label>Reach</label><input type="number" min="0" id="p_r" required></div>
+ <div><label>ไลก์</label><input type="number" min="0" id="p_l" value="0"></div>
+ <div><label>คอมเมนต์</label><input type="number" min="0" id="p_c" value="0"></div>
+ <div><label>แชร์</label><input type="number" min="0" id="p_s" value="0"></div>
+ <div><label>คลิก</label><input type="number" min="0" id="p_k" value="0"></div>
+ <button class="btn">บันทึกโพสต์</button></form>
+ <div class="grid two"><div class="card"><h3>Reach และ Engagement ตามวันที่</h3><canvas id="c1"></canvas></div>
+ <div class="card"><h3>Engagement เฉลี่ยแต่ละแพลตฟอร์ม (%)</h3><canvas id="c2"></canvas></div></div>
+ <div class="card tw" style="margin-top:14px"><table><tr><th>วันที่</th><th>โพสต์</th><th>แพลตฟอร์ม</th><th>Reach</th><th>ไลก์</th><th>คอมเมนต์</th><th>แชร์</th><th>Eng.</th><th></th></tr>
+ ${[...S.posts].sort((a,b)=>b.date.localeCompare(a.date)).map(p=>`<tr><td>${p.date}</td><td>${esc(p.title)}</td><td>${p.pf}</td><td>${fmt(p.reach)}</td><td>${fmt(p.likes)}</td><td>${fmt(p.cmt)}</td><td>${fmt(p.shr)}</td><td><b>${eng(p).toFixed(1)}%</b></td><td>${isAdmin()?`<button class="btn sm ghost" onclick="delPost(${p.id})">ลบ</button>`:''}</td></tr>`).join('')||'<tr><td colspan=9>ยังไม่มีข้อมูลโพสต์</td></tr>'}</table></div>`}
+async function addPost(e){e.preventDefault();const n=i=>+$('#'+i).value||0;
+ const o={title:$('#p_t').value,pf:$('#p_pf').value,date:$('#p_d').value,reach:n('p_r'),likes:n('p_l'),cmt:n('p_c'),shr:n('p_s'),clk:n('p_k')};
+ if(await put('posts',o)){await loadAll();render();toast('บันทึกโพสต์แล้ว')}}
+async function delPost(id){if(!isAdmin())return;if(await del('posts',id)){await loadAll();render()}}
+function chartReach(id){
+ const P=[...S.posts].sort((a,b)=>a.date.localeCompare(b.date));
+ charts.push(new Chart($('#'+id),{type:'bar',data:{labels:P.map(p=>p.date.slice(5)),datasets:[
+ {label:'Reach',data:P.map(p=>p.reach),backgroundColor:'#FFCC00',borderRadius:6,yAxisID:'y'},
+ {type:'line',label:'Engagement %',data:P.map(p=>+eng(p).toFixed(2)),borderColor:'#F94D12',backgroundColor:'#F94D12',tension:.3,yAxisID:'y1'}]},
+ options:{responsive:true,scales:{y:{beginAtZero:true},y1:{position:'right',beginAtZero:true,grid:{display:false}}}}}))}
+window.after_posts=()=>{chartReach('c1');
+ const g={};S.posts.forEach(p=>(g[p.pf]=g[p.pf]||[]).push(eng(p)));const k=Object.keys(g);
+ charts.push(new Chart($('#c2'),{type:'bar',data:{labels:k,datasets:[{label:'Engagement %',data:k.map(x=>+(g[x].reduce((a,b)=>a+b,0)/g[x].length).toFixed(2)),backgroundColor:['#F94D12','#FFCC00','#ff8a3d','#ffe066','#c43a0c'],borderRadius:6}]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}}}))};
+
+/* ============ ข้อมูลเชิงลึก ============ */
+function ins(){
+ const P=S.posts,T=S.tasks,out=[];
+ if(P.length){
+  const by=f=>{const g={};P.forEach(p=>{const k=f(p);(g[k]=g[k]||[]).push(eng(p))});return Object.entries(g).map(([k,v])=>[k,v.reduce((a,b)=>a+b,0)/v.length]).sort((a,b)=>b[1]-a[1])};
+  const pf=by(p=>p.pf),dw=by(p=>['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'][new Date(p.date).getDay()]);
+  const top=[...P].sort((a,b)=>eng(b)-eng(a))[0],tr=P.reduce((a,p)=>a+p.reach,0),tc=P.reduce((a,p)=>a+p.clk,0);
+  out.push(`แพลตฟอร์มที่ได้ Engagement ดีที่สุดคือ <b>${pf[0][0]}</b> (${pf[0][1].toFixed(1)}%)${pf.length>1?` ส่วนที่ต่ำสุดคือ ${pf.at(-1)[0]} (${pf.at(-1)[1].toFixed(1)}%)`:''}`);
+  out.push(`วันที่โพสต์แล้วได้ผลดีที่สุดคือ <b>วัน${dw[0][0]}</b> เฉลี่ย ${dw[0][1].toFixed(1)}%`);
+  out.push(`โพสต์ที่ดีที่สุดคือ <b>${esc(top.title)}</b> บน ${top.pf} Engagement ${eng(top).toFixed(1)}%`);
+  out.push(`Reach รวม ${fmt(tr)} คน และมีคลิกรวม ${fmt(tc)} ครั้ง (CTR ${tr?(tc/tr*100).toFixed(1):0}%)`);
+ }else out.push('ยังไม่มีข้อมูลโพสต์ เพิ่มที่หน้า "ผลโพสต์" เพื่อดูข้อมูลเชิงลึก');
+ const C=S.contents;out.push(`คอนเทนต์ทั้งหมด ${C.length} ชิ้น · ไอเดียที่ยังไม่ลงมือ ${C.filter(c=>c.status==='idea').length} ชิ้น · พร้อมโพสต์ ${C.filter(c=>c.status==='ready').length} ชิ้น · ยังไม่กำหนดวันโพสต์ ${C.filter(c=>!c.date&&c.status!=='posted').length} ชิ้น`);
+ const done=T.filter(t=>t.status==='done').length;
+ out.push(`ทีมทำงานเสร็จ <b>${T.length?Math.round(done/T.length*100):0}%</b> (${done}/${T.length} งาน) · เลยกำหนด ${T.filter(late).length} งาน`);
+ const w={};T.filter(t=>t.status!=='done').forEach(t=>w[t.who||'-']=(w[t.who||'-']||0)+1);
+ const wl=Object.entries(w).sort((a,b)=>b[1]-a[1]);if(wl.length)out.push(`คนที่มีงานค้างมากที่สุดคือ <b>${esc(wl[0][0])}</b> (${wl[0][1]} งาน)`);
+ return head('ข้อมูลเชิงลึก','สรุปอัตโนมัติจากข้อมูลคอนเทนต์ งาน และโพสต์ของทีม')+out.map(o=>`<div class="ins">${o}</div>`).join('')+`<div class="grid two" style="margin-top:14px"><div class="card"><h3>สถานะคอนเทนต์</h3><canvas id="c1"></canvas></div><div class="card"><h3>ไลก์ / คอมเมนต์ / แชร์ แยกแพลตฟอร์ม</h3><canvas id="c2"></canvas></div></div>`}
+window.after_ins=()=>{
+ charts.push(new Chart($('#c1'),{type:'doughnut',data:{labels:CT.map(s=>s[1]),datasets:[{data:CT.map(([k])=>S.contents.filter(c=>c.status===k).length),backgroundColor:CT.map(s=>s[2])}]}}));
+ const k=[...new Set(S.posts.map(p=>p.pf))],sum=f=>k.map(x=>S.posts.filter(p=>p.pf===x).reduce((a,p)=>a+p[f],0));
+ charts.push(new Chart($('#c2'),{type:'bar',data:{labels:k,datasets:[{label:'ไลก์',data:sum('likes'),backgroundColor:'#FFCC00'},{label:'คอมเมนต์',data:sum('cmt'),backgroundColor:'#ff8a3d'},{label:'แชร์',data:sum('shr'),backgroundColor:'#F94D12'}]},options:{scales:{x:{stacked:true},y:{stacked:true}}}}))};
+
+/* ============ จัดการผู้ใช้ (แอดมิน) ============ */
+function pendBadge(){const n=PR.filter(u=>u.status==='pending').length;$('#pend').innerHTML=isAdmin()&&n?`<span class="badge">${n}</span>`:''}
+async function uSet(id,patch){if(!isAdmin()||id===ME.id)return;const r=await sb.from('profiles').update(patch).eq('id',id).select('id');
+ if(r.error||!r.data.length)return toast('ทำรายการไม่สำเร็จ');await loadAll();pendBadge();render()}
+async function uReset(email){const r=await sb.auth.resetPasswordForEmail(email,{redirectTo:location.href.split('#')[0]});toast(r.error?'ส่งอีเมลไม่สำเร็จ: '+r.error.message:'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่ '+email+' แล้ว')}
+function admin(){
+ if(!isAdmin())return'';
+ const L={active:'ใช้งานได้',pending:'รออนุมัติ',rejected:'ถูกระงับ/ไม่อนุมัติ'};
+ return head('จัดการผู้ใช้','อนุมัติผู้สมัคร กำหนดสิทธิ์ และสำรองข้อมูลของเว็บ')+
+ `<div class="card tw"><table><tr><th>ชื่อ</th><th>อีเมล</th><th>สิทธิ์</th><th>สถานะ</th><th>การจัดการ</th></tr>${PR.map(u=>{const me=u.id===ME.id;return`<tr><td>${esc(u.name)}${me?' (คุณ)':''}</td><td>${esc(u.email)}</td><td>${u.role==='admin'?'แอดมิน':'สมาชิก'}</td><td>${L[u.status]}</td><td><div class="row">
+ ${me?'':`${u.status!=='active'?`<button class="btn sm" onclick="uSet('${u.id}',{status:'active'})">อนุมัติ</button>`:`<button class="btn sm alt" onclick="uSet('${u.id}',{status:'rejected'})">ระงับ</button>`}
+ ${u.status==='active'?`<button class="btn sm alt" onclick="uSet('${u.id}',{role:'${u.role==='admin'?'member':'admin'}'})">${u.role==='admin'?'ลดเป็นสมาชิก':'ตั้งเป็นแอดมิน'}</button>`:''}`}
+ <button class="btn sm ghost" onclick="uReset('${esc(u.email)}')">ส่งลิงก์รีเซ็ตรหัสผ่าน</button></div></td></tr>`}).join('')}</table></div>
+ <div class="card" style="margin-top:14px"><h3>สำรองข้อมูล</h3><p class="sub" style="margin-bottom:12px">ข้อมูลทั้งหมดเก็บบน Supabase และซิงก์ให้ทีมอัตโนมัติ ปุ่มนี้ใช้ดาวน์โหลดไฟล์สำรองหรือนำเข้าข้อมูลเดิม</p>
+ <div class="row"><button class="btn ghost" onclick="expJ()">ดาวน์โหลด JSON</button><label class="btn ghost" style="cursor:pointer;margin:0">นำเข้า JSON<input type="file" accept=".json" style="display:none" onchange="impJ(this)"></label><button class="btn ghost" onclick="clearAll()">ล้างข้อมูลเนื้อหา</button></div></div>`}
+function expJ(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'}));a.download='ranprajam-data.json';a.click()}
+function impJ(i){const f=i.files[0];if(!f)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);
+ for(const t of TABLES){const rows=(d[t]||[]).map(({id,...x})=>({data:x}));if(rows.length){const e=(await sb.from(t).insert(rows)).error;if(e)throw e}}
+ await loadAll();render();toast('นำเข้าข้อมูลแล้ว')}catch(e){toast('นำเข้าไม่สำเร็จ: '+(e.message||'ไฟล์ไม่ถูกต้อง'))}};r.readAsText(f)}
+async function clearAll(){if(!confirm('ลบคอนเทนต์ งาน และโพสต์ทั้งหมดของทีม? ย้อนกลับไม่ได้'))return;
+ for(const t of TABLES)await sb.from(t).delete().gt('id',0);await loadAll();render();toast('ล้างข้อมูลแล้ว')}
+
+/* ============ บัญชีผู้ใช้ (Supabase Auth) ============ */
+function setMsg(m,ok){const e=$('#a_m');e.textContent=m;e.className=ok?'ok':''}
+function authUI(mode,msg='',ok=false){
+ const A=$('#auth');A.style.display='flex';
+ if(!configured){A.innerHTML=`<div class="authbox"><h1>ยังไม่ได้เชื่อมต่อ Supabase</h1><p class="sub">เปิดไฟล์ index.html แล้วใส่ SUPABASE_URL และ SUPABASE_KEY ที่ส่วนบนของสคริปต์ จากนั้นรันไฟล์ schema.sql ใน SQL Editor ของ Supabase</p></div>`;return}
+ const reg=mode==='reg';
+ A.innerHTML=`<div class="authbox"><svg width="46" height="46" viewBox="0 0 42 42" aria-hidden="true"><rect width="42" height="42" rx="10" fill="#FFCC00"/><path d="M21 6C12 6 8 13 7 19h14z" fill="#F94D12"/><rect x="8" y="22" width="13" height="6" rx="2" fill="#F94D12"/><path d="M9 31l12 4v1C14 36 9 34 9 31z" fill="#F94D12"/></svg>
+ <h1>Behind Ranprajam Burger</h1><p class="sub" style="margin-bottom:14px">${reg?'สมัครใช้งาน บัญชีแรกของระบบจะเป็นแอดมิน คนถัดไปต้องรอแอดมินอนุมัติ':'เข้าสู่ระบบเพื่อใช้งาน'}</p>
+ <div class="tabs"><button class="chip ${reg?'':'on'}" onclick="authUI('login')">เข้าสู่ระบบ</button><button class="chip ${reg?'on':''}" onclick="authUI('reg')">สมัครใช้งาน</button></div>
+ <div class="grid" style="gap:10px">${reg?'<div><label>ชื่อที่แสดง</label><input id="a_n" autocomplete="name"></div>':''}
+ <div><label>อีเมล</label><input id="a_e" type="email" autocomplete="username"></div>
+ <div><label>รหัสผ่าน${reg?' (อย่างน้อย 6 ตัวอักษร)':''}</label><input id="a_p" type="password" autocomplete="${reg?'new-password':'current-password'}"></div>
+ ${reg?'<div><label>ยืนยันรหัสผ่าน</label><input id="a_p2" type="password" autocomplete="new-password"></div>':''}
+ <p id="a_m" class="${ok?'ok':''}" style="color:#b02a00;margin:0;min-height:20px">${msg}</p>
+ <button class="btn" id="a_go" onclick="${reg?'doReg()':'doLogin()'}">${reg?'สมัครใช้งาน':'เข้าสู่ระบบ'}</button>
+ ${reg?'':'<button class="link" onclick="forgot()">ลืมรหัสผ่าน</button>'}</div></div>`;
+ A.onkeydown=e=>{if(e.key==='Enter')$('#a_go').click()};($('#a_n')||$('#a_e')).focus()}
+async function withBusy(fn){const b=$('#a_go');b.disabled=true;try{await fn()}finally{b.disabled=false}}
+function doReg(){withBusy(async()=>{
+ const n=$('#a_n').value.trim(),e=$('#a_e').value.trim().toLowerCase(),p=$('#a_p').value,p2=$('#a_p2').value;
+ if(!n||!e)return setMsg('กรอกชื่อและอีเมลให้ครบ');
+ if(!/^\S+@\S+\.\S+$/.test(e))return setMsg('รูปแบบอีเมลไม่ถูกต้อง');
+ if(p.length<6)return setMsg('รหัสผ่านต้องยาวอย่างน้อย 6 ตัวอักษร');
+ if(p!==p2)return setMsg('รหัสผ่านทั้งสองช่องไม่ตรงกัน');
+ const {data,error}=await sb.auth.signUp({email:e,password:p,options:{data:{name:n}}});
+ if(error)return setMsg('สมัครไม่สำเร็จ: '+error.message);
+ if(data.session)return enter(true);
+ authUI('login','สมัครสำเร็จ หากมีอีเมลยืนยัน ให้กดลิงก์ในอีเมลก่อน แล้วรอแอดมินอนุมัติ',true)})}
+function doLogin(){withBusy(async()=>{
+ const e=$('#a_e').value.trim().toLowerCase(),p=$('#a_p').value;
+ const {error}=await sb.auth.signInWithPassword({email:e,password:p});
+ if(error)return setMsg(/confirm/i.test(error.message)?'กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ':'อีเมลหรือรหัสผ่านไม่ถูกต้อง');
+ await enter()})}
+async function forgot(){const e=$('#a_e').value.trim().toLowerCase();if(!e)return setMsg('กรอกอีเมลก่อน แล้วกด "ลืมรหัสผ่าน"');
+ const r=await sb.auth.resetPasswordForEmail(e,{redirectTo:location.href.split('#')[0]});
+ setMsg(r.error?'ส่งอีเมลไม่สำเร็จ: '+r.error.message:'ส่งลิงก์ตั้งรหัสผ่านใหม่ไปที่อีเมลแล้ว',!r.error)}
+async function newPw(){const p=prompt('ตั้งรหัสผ่านใหม่ (อย่างน้อย 6 ตัวอักษร)');if(!p||p.length<6)return toast('รหัสผ่านสั้นเกินไป ลองขอลิงก์ใหม่');
+ const r=await sb.auth.updateUser({password:p});toast(r.error?'เปลี่ยนรหัสผ่านไม่สำเร็จ':'เปลี่ยนรหัสผ่านแล้ว')}
+async function enter(fromReg){
+ const {data:{session}}=await sb.auth.getSession();if(!session)return authUI('login');
+ const {data:p,error}=await sb.from('profiles').select('*').eq('id',session.user.id).single();
+ if(error||!p){await sb.auth.signOut();return authUI('login','ไม่พบข้อมูลโปรไฟล์ ลองใหม่อีกครั้ง')}
+ if(p.status!=='active'){await sb.auth.signOut();
+  return authUI('login',p.status==='pending'?(fromReg?'สมัครสำเร็จ ':'')+'บัญชีรอแอดมินอนุมัติ ระบบจะให้เข้าใช้งานได้หลังอนุมัติ':'บัญชีนี้ถูกระงับ กรุณาติดต่อแอดมิน',p.status==='pending'&&!!fromReg)}
+ ME=p;start()}
+function logout(){sb.auth.signOut()}
+async function start(){
+ $('#auth').style.display='none';
+ $('#navAdmin').style.display=isAdmin()?'':'none';$('#navReview').style.display=isAdmin()?'':'none';
+ $('#ubox').innerHTML=`<b>${esc(ME.name)}</b><span>${isAdmin()?'แอดมิน':'สมาชิก'}</span><br><button class="btn sm ghost" style="margin-top:8px" onclick="logout()">ออกจากระบบ</button>`;
+ $('#app').innerHTML='<p class="sub">กำลังโหลดข้อมูล...</p>';
+ await loadAll();pendBadge();
+ document.querySelectorAll('aside .nav').forEach(x=>x.classList.toggle('on',x.dataset.v===view));render();
+ if(!chan)chan=sb.channel('team-sync').on('postgres_changes',{event:'*',schema:'public'},onChange).subscribe()}
+(async function boot(){
+ if(!configured)return authUI('login');
+ sb.auth.onAuthStateChange(ev=>{
+  if(ev==='PASSWORD_RECOVERY')setTimeout(newPw,300);
+  if(ev==='SIGNED_OUT'){ME=null;S={contents:[],tasks:[],posts:[]};PR=[];if(chan){sb.removeChannel(chan);chan=null}view='dash';$('#app').innerHTML='';authUI('login')}});
+ const {data:{session}}=await sb.auth.getSession();
+ session?enter():authUI('login')})();
+</script>
+</body>
+</html>
