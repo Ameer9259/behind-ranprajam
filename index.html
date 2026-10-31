@@ -114,18 +114,21 @@ canvas{max-height:280px}
 .tt{font-size:11px;padding:1px 8px;border-radius:99px;background:#fff;border:1.5px solid var(--y);white-space:nowrap}
 .row select{width:auto}
 .cm .rv{background:var(--o);color:#fff;border-radius:99px;font-size:10px;padding:0 7px;margin-left:6px}
+.lg{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-right:12px}
+.sw{width:14px;height:14px;border-radius:4px;display:inline-block}
+.ev[style]{font-weight:500}
 </style>
 </head>
 <body>
 <aside>
   <div class="brand">
-    <svg width="42" height="42" viewBox="0 0 42 42" aria-hidden="true"><rect width="42" height="42" rx="10" fill="#fff"/><path d="M21 6C12 6 8 13 7 19h14z" fill="#F94D12"/><rect x="8" y="22" width="13" height="6" rx="2" fill="#F94D12"/><path d="M9 31l12 4v1C14 36 9 34 9 31z" fill="#F94D12"/></svg>
+    <span id="brandLogo"></span>
     <div>Behind<small>Ranprajam Burger</small></div>
   </div>
   <button class="nav on" data-v="dash">ภาพรวมคอนเทนต์</button>
   <button class="nav" data-v="board">บอร์ดงาน</button>
   <button class="nav" data-v="cal">ตารางคอนเทนต์</button>
-  <button class="nav" data-v="review" id="navReview" style="display:none">ตรวจงาน</button>
+  <button class="nav" data-v="review">ตรวจงาน</button>
   <button class="nav" data-v="feedback">ผลตอบรับ</button>
   <button class="nav" data-v="ins">ข้อมูลเชิงลึก</button>
   <button class="nav" data-v="admin" id="navAdmin" style="display:none">จัดการผู้ใช้<span id="pend"></span></button>
@@ -140,6 +143,10 @@ canvas{max-height:280px}
 /* ============ ตั้งค่า Supabase ============ */
 const SUPABASE_URL='https://pfpgecavzrrbathvdimg.supabase.co';
 const SUPABASE_KEY='sb_publishable_1T8cxx8qFEPQnlWcHKh_IA_s9-H9jZ2';
+
+/* ============ ปรับแต่งหน้าตา ============ */
+const LOGO_URL='Ranprajam bg logo.png';        // ชื่อไฟล์โลโก้ เช่น 'logo.png' (อัปโหลดไว้ใน repo ข้าง index.html) เว้นว่างเพื่อใช้โลโก้เดิม
+const PLACEHOLDER='🍔';   // สัญลักษณ์ที่แสดงเมื่อคอนเทนต์ยังไม่มีรูป
 /* ================================================================ */
 
 const ST=[['todo','รอทำ'],['doing','กำลังทำ'],['review','รอตรวจ'],['done','เสร็จแล้ว']];
@@ -161,9 +168,16 @@ const late=t=>t.status!=='done'&&t.due&&t.due<td();
 const fmt=n=>Number(n).toLocaleString('th-TH');
 const short=t=>t.length>14?t.slice(0,13)+'…':t;
 
+/* ===== โลโก้ ===== */
+const logoSvg=(bg,z)=>`<svg width="${z}" height="${z}" viewBox="0 0 42 42" aria-hidden="true"><rect width="42" height="42" rx="10" fill="${bg}"/><path d="M21 6C12 6 8 13 7 19h14z" fill="#F94D12"/><rect x="8" y="22" width="13" height="6" rx="2" fill="#F94D12"/><path d="M9 31l12 4v1C14 36 9 34 9 31z" fill="#F94D12"/></svg>`;
+const logoHTML=(z,bg)=>LOGO_URL?`<img src="${esc(LOGO_URL)}" width="${z}" height="${z}" alt="โลโก้ Behind Ranprajam Burger" style="display:block;border-radius:10px;object-fit:cover">`:logoSvg(bg,z);
+
 /* ===== ประเภทคอนเทนต์ และไอคอนแพลตฟอร์ม ===== */
 const CTY=[['case','เล่าเคส'],['fun','อินเตอร์เทน'],['bts','เบื้องหลัง'],['qa','ตอบคำถาม'],['edu','สอน'],['sell','ขายของ']];
 const tyName=k=>(CTY.find(x=>x[0]===k)||['',''])[1];
+const TYC={case:'#6C4AB6',fun:'#D6285F',bts:'#0B7A7A',qa:'#1F6FBF',edu:'#1F8A4C',sell:'#E0420D'};
+const tyColor=k=>TYC[k]||'#7a6a60';
+const ttag=k=>`<span class="tt" style="background:${tyColor(k)};border-color:${tyColor(k)};color:#fff">${tyName(k)}</span>`;
 const GL={Facebook:'<path d="M15.6 8H14c-.8 0-1 .4-1 1v1.6h2.5l-.4 2.6H13V20h-2.9v-6.8H8v-2.6h2.1V8.9C10.1 6.9 11.3 6 13.1 6h2.5z" fill="#fff"/>',
 Instagram:'<rect x="6" y="6" width="12" height="12" rx="3.6" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="12" cy="12" r="2.9" fill="none" stroke="#fff" stroke-width="1.8"/><circle cx="16" cy="8" r="1" fill="#fff"/>',
 TikTok:'<path d="M13.2 6v8.1a2.3 2.3 0 1 1-2-2.3M13.2 6c.3 2 1.6 3.3 3.6 3.5" fill="none" stroke="#fff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>'};
@@ -201,7 +215,7 @@ document.querySelectorAll('aside .nav').forEach(b=>b.onclick=()=>{view=b.dataset
 $('#modal').onclick=e=>{if(e.target.id==='modal')closeM()};
 const closeM=()=>$('#modal').classList.remove('on');
 const openM=h=>{$('#sheet').innerHTML=h;$('#modal').classList.add('on')};
-function render(){if(!ME)return;if((view==='admin'||view==='review')&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,admin}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
+function render(){if(!ME)return;if(view==='admin'&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,admin}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
 function head(t,s,act=''){return`<div class="row" style="justify-content:space-between"><div><h1>${t}</h1><p class="sub">${s}</p></div>${act}</div>`}
 
 /* ============ หน้าแรก: ภาพรวมคอนเทนต์ ============ */
@@ -210,7 +224,7 @@ const monthKey=c=>c.date?c.date.slice(0,7):'none';
 const mLabel=k=>new Date(k+'-01').toLocaleDateString('th-TH',{month:'short',year:'2-digit'});
 const nowStr=()=>new Date().toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'});
 function cCard(c){const [,l,col]=stOf(c.status);
- return`<button class="cc sm" onclick="openContent(${c.id})"><div class="ci">${c.img?`<img src="${c.img}" alt="">`:'🍔'}</div><div class="cb"><div class="row tags"><span class="st" style="background:${col};color:${['review','ready','posted'].includes(c.status)?'#fff':'var(--ink)'}">${l}</span>${c.type?`<span class="tt">${tyName(c.type)}</span>`:''}</div><b>${esc(c.title)}</b><p>${esc(c.cap)||'ยังไม่มีแคปชัน'}</p><div class="row" style="justify-content:space-between">${pfIcons(c)}<small>${c.date?c.date.slice(8)+'/'+c.date.slice(5,7):'ไม่กำหนดวัน'}${c.cm.length?`, ${c.cm.length} คอมเมนต์`:''}</small></div></div></button>`}
+ return`<button class="cc sm" onclick="openContent(${c.id})"><div class="ci">${c.img?`<img src="${c.img}" alt="">`:PLACEHOLDER}</div><div class="cb"><div class="row tags"><span class="st" style="background:${col};color:${['review','ready','posted'].includes(c.status)?'#fff':'var(--ink)'}">${l}</span>${c.type?`${ttag(c.type)}`:''}</div><b>${esc(c.title)}</b><p>${esc(c.cap)||'ยังไม่มีแคปชัน'}</p><div class="row" style="justify-content:space-between">${pfIcons(c)}<small>${c.date?c.date.slice(8)+'/'+c.date.slice(5,7):'ไม่กำหนดวัน'}${c.cm.length?`, ${c.cm.length} คอมเมนต์`:''}</small></div></div></button>`}
 function dash(){
  const cur=td().slice(0,7),ms=[...new Set(S.contents.filter(c=>c.date).map(monthKey).concat(cur))].sort(),none=S.contents.filter(c=>!c.date).length;
  const cnt=k=>S.contents.filter(c=>monthKey(c)===k).length;
@@ -231,14 +245,14 @@ window.after_dash=()=>{charts.push(new Chart($('#c1'),{type:'doughnut',data:{lab
 function goStatus(k){cf=k;mv='all';tpf='all';view='dash';document.querySelectorAll('aside .nav').forEach(x=>x.classList.toggle('on',x.dataset.v==='dash'));render()}
 
 /* ===== การ์ดคอนเทนต์ ===== */
-function prevImg(){$('#c_prev').innerHTML=tmpImg?`<img src="${tmpImg}" alt="">`:'🍔'}
+function prevImg(){$('#c_prev').innerHTML=tmpImg?`<img src="${tmpImg}" alt="">`:PLACEHOLDER}
 function pickImg(i){const f=i.files[0];if(!f)return;const r=new FileReader();
  r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,640/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);tmpImg=c.toDataURL('image/jpeg',.72);prevImg()};im.onerror=()=>toast('เปิดรูปนี้ไม่ได้');im.src=r.result};r.readAsDataURL(f)}
 function drawPf(){$('#c_pfs').innerHTML=PF.map(p=>{const on=tmpPfs.includes(p);return`<button type="button" class="pfb ${on?'on':''}" aria-pressed="${on}" onclick="togglePf('${p}')">${ic(p,22)}<span style="margin:0 8px 0 7px">${p}</span>${on?'✓':''}</button>`}).join('')}
 function togglePf(p){tmpPfs=PF.filter(x=>x===p?!tmpPfs.includes(p):tmpPfs.includes(x));drawPf()}
 function collect(c){const v=i=>$('#'+i).value;Object.assign(c,{title:v('c_t'),cap:v('c_c'),note:v('c_n'),type:v('c_ty'),pfs:tmpPfs,date:v('c_d'),status:v('c_s'),img:tmpImg});delete c.pf;return c}
-function openContent(id){
- const c=S.contents.find(x=>x.id===id)||{id:0,title:'',cap:'',img:'',type:'',pfs:[],stats:{},cm:[],date:td(3),status:'idea',note:''};
+function openContent(id,pre){
+ const c=S.contents.find(x=>x.id===id)||{id:0,title:'',cap:'',img:'',type:'',pfs:[],stats:{},cm:[],date:'',status:pre||'idea',note:''};
  tmpImg=c.img||'';tmpPfs=[...c.pfs];
  openM(`<h2 style="margin-top:0">${id?'แก้ไขคอนเทนต์':'เพิ่มคอนเทนต์ใหม่'}</h2><div class="grid" style="gap:10px">
  <div><label>ชื่อคอนเทนต์</label><input id="c_t" value="${esc(c.title)}"></div>
@@ -248,7 +262,7 @@ function openContent(id){
  <div><label>ไอเดีย / โน้ตเพิ่มเติม</label><textarea id="c_n" rows="2">${esc(c.note)}</textarea></div>
  <div><label>โพสต์ลงแพลตฟอร์ม (เลือกได้หลายรายการ)</label><div class="row" id="c_pfs" style="margin-top:4px"></div></div>
  <div class="row"><div style="flex:1;min-width:140px"><label>ประเภทคอนเทนต์</label><select id="c_ty" style="width:100%"><option value="">ยังไม่ระบุ</option>${CTY.map(([k,l])=>`<option value="${k}" ${c.type===k?'selected':''}>${l}</option>`).join('')}</select></div>
- <div style="flex:1;min-width:140px"><label>วันที่โพสต์</label><input type="date" id="c_d" value="${c.date}"></div>
+ <div style="flex:1;min-width:140px"><label>วันที่โพสต์ (ไม่บังคับ)</label><input type="date" id="c_d" value="${c.date}"></div>
  <div style="flex:1;min-width:140px"><label>สถานะ</label><select id="c_s" style="width:100%">${CT.map(([k,l])=>`<option value="${k}" ${c.status===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
  ${id?`<div><label>คอมเมนต์ (${c.cm.length})</label>${c.cm.map(m=>`<div class="cm"><small>${esc(m.a)}${m.r==='admin'?'<span class="rv">ผู้ตรวจ</span>':''}, ${esc(m.ts)}</small><br>${esc(m.t)}</div>`).join('')||'<p class="sub" style="margin:4px 0 8px">ยังไม่มีคอมเมนต์</p>'}<div class="row"><input id="cc_t" placeholder="เขียนคอมเมนต์ในชื่อ ${esc(ME.name)}" style="flex:1"><button class="btn sm" onclick="addCCm(${id})">ส่ง</button></div></div>`:'<p class="sub" style="margin:0">บันทึกคอนเทนต์ก่อน แล้วจะคอมเมนต์ได้ ส่วนผลตอบรับกรอกที่เมนู "ผลตอบรับ" หลังเปลี่ยนสถานะเป็นโพสต์แล้ว</p>'}
  <div class="row" style="justify-content:space-between"><div>${id&&isAdmin()?`<button class="btn ghost" onclick="delContent(${id})">ลบ</button>`:''}</div><div class="row"><button class="btn ghost" onclick="closeM()">ปิด</button><button class="btn" onclick="saveContent(${id})">บันทึก</button></div></div></div>`);prevImg();drawPf()}
@@ -293,21 +307,24 @@ function cal(){
  const y=calM.getFullYear(),m=calM.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
  let cells=['อา','จ','อ','พ','พฤ','ศ','ส'].map(d=>`<div class="h">${d}</div>`).join('')+'<div></div>'.repeat(first);
  for(let d=1;d<=n;d++){const ds=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-  cells+=`<div class="day ${ds===td()?'today':''}"><b>${d}</b>${S.contents.filter(c=>c.date===ds).map(c=>`<span class="ev c" title="${esc(c.pfs.join(', '))}" onclick="openContent(${c.id})">${esc(c.title)}</span>`).join('')}${S.tasks.filter(t=>t.due===ds).map(t=>`<span class="ev" onclick="openTask(${t.id})">${esc(t.title)}</span>`).join('')}</div>`}
- return head('ตารางคอนเทนต์',`${calM.toLocaleDateString('th-TH',{month:'long',year:'numeric'})} สีส้มอ่อนคือวันโพสต์คอนเทนต์ สีเหลืองคือกำหนดส่งงาน`,`<div class="row"><button class="btn ghost" onclick="calM.setMonth(calM.getMonth()-1);render()">ก่อนหน้า</button><button class="btn ghost" onclick="calM=new Date();render()">วันนี้</button><button class="btn ghost" onclick="calM.setMonth(calM.getMonth()+1);render()">ถัดไป</button></div>`)+`<div class="cal">${cells}</div>`}
+  cells+=`<div class="day ${ds===td()?'today':''}"><b>${d}</b>${S.contents.filter(c=>c.date===ds).map(c=>`<span class="ev" style="background:${tyColor(c.type)};color:#fff" title="${esc((tyName(c.type)||'ยังไม่ระบุประเภท')+(c.pfs.length?': '+c.pfs.join(', '):''))}" onclick="openContent(${c.id})">${esc(c.title)}</span>`).join('')}${S.tasks.filter(t=>t.due===ds).map(t=>`<span class="ev" onclick="openTask(${t.id})">${esc(t.title)}</span>`).join('')}</div>`}
+ return head('ตารางคอนเทนต์',`${calM.toLocaleDateString('th-TH',{month:'long',year:'numeric'})}`,`<div class="row"><button class="btn ghost" onclick="calM.setMonth(calM.getMonth()-1);render()">ก่อนหน้า</button><button class="btn ghost" onclick="calM=new Date();render()">วันนี้</button><button class="btn ghost" onclick="calM.setMonth(calM.getMonth()+1);render()">ถัดไป</button></div>`)+`<div class="row" style="margin-bottom:12px" role="group" aria-label="คำอธิบายสี">${CTY.map(([k,l])=>`<span class="lg"><i class="sw" style="background:${TYC[k]}"></i>${l}</span>`).join('')}<span class="lg"><i class="sw" style="background:#7a6a60"></i>ยังไม่ระบุประเภท</span><span class="lg"><i class="sw" style="background:#FFCC00"></i>กำหนดส่งงาน</span></div><div class="cal">${cells}</div>`}
 
 /* ============ ตรวจงาน (แอดมิน/ผู้ตรวจ) ============ */
 function review(){
- const L=S.tasks.filter(t=>t.status==='review'),C=S.contents.filter(c=>c.status==='review');
- return head('ตรวจงาน','งานและคอนเทนต์ที่รอการอนุมัติ คอมเมนต์ถึงทีมได้ก่อนกดผ่านหรือส่งกลับ')+
- (C.length?`<h3>คอนเทนต์รอตรวจ</h3>`+C.map(c=>`<div class="card" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(c.title)}${c.type?` <span class="tt">${tyName(c.type)}</span>`:''}</h3>${pfIcons(c)}</div><p>${esc(c.cap)||'<span class="sub">ยังไม่มีแคปชัน</span>'}</p>
- ${c.cm.slice(-2).map(m=>`<div class="cm"><small>${esc(m.a)}, ${esc(m.ts)}</small><br>${esc(m.t)}</div>`).join('')}
- <input id="rc${c.id}" placeholder="คอมเมนต์ถึงทีม (ไม่บังคับ)" style="margin:8px 0"><div class="row"><button class="btn" onclick="rvContent(${c.id},1)">ผ่าน (พร้อมโพสต์)</button><button class="btn alt" onclick="rvContent(${c.id},0)">ส่งกลับแก้ไข</button><button class="btn ghost" onclick="openContent(${c.id})">เปิดดู</button></div></div>`).join(''):'')+
- (L.length?`<h3>งานรอตรวจ</h3>`+L.map(t=>`<div class="card" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(t.title)}</h3><span class="tag">${esc(t.who)}</span></div>
+ const adm=isAdmin(),L=S.tasks.filter(t=>t.status==='review'),C=S.contents.filter(c=>c.status==='review');
+ return head('ตรวจงาน',adm?'คอนเทนต์ที่ตัดต่อเสร็จแล้วและงานที่รอผู้ตรวจ คอมเมนต์ถึงทีมได้ก่อนกดผ่านหรือส่งกลับ':'คอนเทนต์ที่ตัดต่อเสร็จแล้วและรอผู้ตรวจ ส่งตรวจได้เลยโดยไม่ต้องกำหนดวันโพสต์',`<button class="btn" onclick="openContent(0,'review')">+ ส่งคอนเทนต์เข้าตรวจ</button>`)+
+ `<h3>คอนเทนต์รอตรวจ (${C.length})</h3>`+
+ (C.length?`<div class="grid" style="gap:12px;margin-bottom:24px">${C.map(c=>`<div class="card"><div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:14px">
+ <div class="ci" style="width:110px;flex-shrink:0;border-radius:12px;aspect-ratio:1;font-size:32px">${c.img?`<img src="${c.img}" alt="">`:PLACEHOLDER}</div>
+ <div style="flex:1;min-width:0"><div class="row tags" style="margin-bottom:6px">${c.type?ttag(c.type):''}<span class="tag">${c.date?'โพสต์ '+c.date:'ยังไม่กำหนดวันโพสต์'}</span></div>
+ <h3 style="margin:0 0 6px">${esc(c.title)}</h3>${pfIcons(c)}<p style="margin:8px 0 0">${esc(c.cap)||'<span class="sub">ยังไม่มีแคปชัน</span>'}</p></div></div>
+ ${c.cm.slice(-2).map(m=>`<div class="cm"><small>${esc(m.a)}${m.r==='admin'?'<span class="rv">ผู้ตรวจ</span>':''}, ${esc(m.ts)}</small><br>${esc(m.t)}</div>`).join('')}
+ ${adm?`<input id="rc${c.id}" placeholder="คอมเมนต์ถึงทีม (ไม่บังคับ)" style="margin:8px 0"><div class="row"><button class="btn" onclick="rvContent(${c.id},1)">ผ่าน (พร้อมโพสต์)</button><button class="btn alt" onclick="rvContent(${c.id},0)">ส่งกลับแก้ไข</button><button class="btn ghost" onclick="openContent(${c.id})">เปิดดู</button></div>`:`<div class="row" style="margin-top:8px"><button class="btn ghost" onclick="openContent(${c.id})">เปิดดูและคอมเมนต์</button></div>`}</div>`).join('')}</div>`:'<div class="card" style="margin-bottom:24px"><p class="sub" style="margin:0">ยังไม่มีคอนเทนต์รอตรวจ กด "+ ส่งคอนเทนต์เข้าตรวจ" หรือเปลี่ยนสถานะที่การ์ดคอนเทนต์เป็น "รอตรวจ"</p></div>')+
+ `<h3>งานรอตรวจ (${L.length})</h3>`+
+ (L.length?L.map(t=>`<div class="card" style="margin-bottom:12px"><div class="row" style="justify-content:space-between"><h3 style="margin:0">${esc(t.title)}</h3><span class="tag">${esc(t.who)}</span></div>
  <p>${esc(t.desc)||'<span class="sub">ไม่มีรายละเอียด</span>'}</p><p class="sub" style="margin:0 0 8px">เช็คลิสต์ ${prog(t)}% และ ${t.cm.length} คอมเมนต์</p>
- <input id="rn${t.id}" placeholder="บันทึกผลการตรวจ / ข้อแก้ไข" style="margin-bottom:8px">
- <div class="row"><button class="btn" onclick="doReview(${t.id},1)">ผ่าน</button><button class="btn alt" onclick="doReview(${t.id},0)">ขอแก้ไข</button><button class="btn ghost" onclick="openTask(${t.id})">เปิดงาน</button></div></div>`).join(''):'')+
- (!L.length&&!C.length?'<div class="card"><p class="sub" style="margin:0">ไม่มีรายการรอตรวจ ตั้งสถานะ "รอตรวจ" ที่คอนเทนต์หรืองานเพื่อให้ปรากฏที่นี่</p></div>':'')}
+ ${adm?`<input id="rn${t.id}" placeholder="บันทึกผลการตรวจ / ข้อแก้ไข" style="margin-bottom:8px"><div class="row"><button class="btn" onclick="doReview(${t.id},1)">ผ่าน</button><button class="btn alt" onclick="doReview(${t.id},0)">ขอแก้ไข</button><button class="btn ghost" onclick="openTask(${t.id})">เปิดงาน</button></div>`:`<button class="btn ghost" onclick="openTask(${t.id})">เปิดงาน</button>`}</div>`).join(''):'<div class="card"><p class="sub" style="margin:0">ไม่มีงานรอตรวจ</p></div>')}
 function rvContent(id,ok){if(!isAdmin())return;const c=S.contents.find(x=>x.id===id),n=$('#rc'+id).value.trim();
  c.status=ok?'ready':'draft';if(n)c.cm.push({a:ME.name,r:ME.role,t:(ok?'ผ่าน: ':'ขอแก้ไข: ')+n,ts:nowStr()});
  commit('contents',c,()=>toast(ok?'อนุมัติคอนเทนต์แล้ว':'ส่งกลับให้แก้ไขแล้ว'))}
@@ -381,7 +398,7 @@ function popular(){
  return `<h2 style="margin:28px 0 4px">คอนเทนต์ยอดนิยม 3 อันดับ</h2><p class="sub" style="margin-bottom:12px">จัดอันดับจากผลตอบรับที่กรอกไว้ในเมนู "ผลตอบรับ"</p>
  <div class="row" style="margin-bottom:12px"><button class="chip ${hpf==='all'?'on':''}" onclick="hpf='all';render()">ทุกแพลตฟอร์ม</button>${PF.map(p=>`<button class="chip ${hpf===p?'on':''}" onclick="hpf='${p}';render()"><span class="pic" style="vertical-align:middle">${ic(p,16)}</span> ${p}</button>`).join('')}</div>
  <div class="row" style="margin-bottom:16px"><span class="sub" style="margin:0">จัดอันดับตาม</span>${M.map(([k,l])=>`<button class="chip ${tm===k?'on':''}" onclick="tm='${k}';render()">${l}</button>`).join('')}</div>`+
- (R.length?`<div class="podium">${R.map((g,i)=>{const c=g.c,a=g.a;return`<button class="cc ${i?'':'first'}" onclick="openContent(${c.id})"><div class="ci">${c.img?`<img src="${c.img}" alt="">`:'🍔'}<span class="rk" aria-label="อันดับ ${i+1}">${i+1}</span></div><div class="cb"><div class="row tags">${c.type?`<span class="tt">${tyName(c.type)}</span>`:''}</div><b>${esc(c.title)}</b><p>${esc(c.cap)||'ยังไม่มีแคปชัน'}</p>
+ (R.length?`<div class="podium">${R.map((g,i)=>{const c=g.c,a=g.a;return`<button class="cc ${i?'':'first'}" onclick="openContent(${c.id})"><div class="ci">${c.img?`<img src="${c.img}" alt="">`:PLACEHOLDER}<span class="rk" aria-label="อันดับ ${i+1}">${i+1}</span></div><div class="cb"><div class="row tags">${c.type?`${ttag(c.type)}`:''}</div><b>${esc(c.title)}</b><p>${esc(c.cap)||'ยังไม่มีแคปชัน'}</p>
  <div class="mets"><div><b>${fmt(a.reach)}</b><span>Reach</span></div><div><b>${fmt(a.eng)}</b><span>ปฏิสัมพันธ์</span></div><div><b>${a.rate.toFixed(1)}%</b><span>Eng. rate</span></div></div>
  <div class="row" style="gap:12px">${g.list.map(e=>`<span class="pic">${ic(e.pf,16)}<small>${fmt(engOf(e.s))}</small></span>`).join('')}</div></div></button>`}).join('')}</div>`:
  '<div class="card"><p class="sub" style="margin:0">ยังไม่มีข้อมูลให้จัดอันดับ กรอกผลตอบรับที่เมนู "ผลตอบรับ" อย่างน้อยหนึ่งโปรเจกต์ก่อน</p></div>')}
@@ -405,7 +422,7 @@ function authUI(mode,msg='',ok=false){
  const A=$('#auth');A.style.display='flex';
  if(!configured){A.innerHTML=`<div class="authbox"><h1>ยังไม่ได้เชื่อมต่อ Supabase</h1><p class="sub">เปิดไฟล์ index.html แล้วใส่ SUPABASE_URL และ SUPABASE_KEY ที่ส่วนบนของสคริปต์ จากนั้นรันไฟล์ schema.sql ใน SQL Editor ของ Supabase</p></div>`;return}
  const reg=mode==='reg';
- A.innerHTML=`<div class="authbox"><svg width="46" height="46" viewBox="0 0 42 42" aria-hidden="true"><rect width="42" height="42" rx="10" fill="#FFCC00"/><path d="M21 6C12 6 8 13 7 19h14z" fill="#F94D12"/><rect x="8" y="22" width="13" height="6" rx="2" fill="#F94D12"/><path d="M9 31l12 4v1C14 36 9 34 9 31z" fill="#F94D12"/></svg>
+ A.innerHTML=`<div class="authbox">${logoHTML(46,'#FFCC00')}
  <h1>Behind Ranprajam Burger</h1><p class="sub" style="margin-bottom:14px">${reg?'สมัครใช้งาน บัญชีแรกของระบบจะเป็นแอดมิน คนถัดไปต้องรอแอดมินอนุมัติ':'เข้าสู่ระบบเพื่อใช้งาน'}</p>
  <div class="tabs"><button class="chip ${reg?'':'on'}" onclick="authUI('login')">เข้าสู่ระบบ</button><button class="chip ${reg?'on':''}" onclick="authUI('reg')">สมัครใช้งาน</button></div>
  <div class="grid" style="gap:10px">${reg?'<div><label>ชื่อที่แสดง</label><input id="a_n" autocomplete="name"></div>':''}
@@ -447,12 +464,14 @@ async function enter(fromReg){
 function logout(){sb.auth.signOut()}
 async function start(){
  $('#auth').style.display='none';
- $('#navAdmin').style.display=isAdmin()?'':'none';$('#navReview').style.display=isAdmin()?'':'none';
+ $('#navAdmin').style.display=isAdmin()?'':'none';
  $('#ubox').innerHTML=`<b>${esc(ME.name)}</b><span>${isAdmin()?'แอดมิน':'สมาชิก'}</span><br><button class="btn sm ghost" style="margin-top:8px" onclick="logout()">ออกจากระบบ</button>`;
  $('#app').innerHTML='<p class="sub">กำลังโหลดข้อมูล...</p>';
  await loadAll();pendBadge();
  document.querySelectorAll('aside .nav').forEach(x=>x.classList.toggle('on',x.dataset.v===view));render();
  if(!chan)chan=sb.channel('team-sync').on('postgres_changes',{event:'*',schema:'public'},onChange).subscribe()}
+$('#brandLogo').innerHTML=logoHTML(42,'#fff');
+if(LOGO_URL){const l=document.querySelector('link[rel=icon]');if(l)l.href=LOGO_URL}
 (async function boot(){
  if(!configured)return authUI('login');
  sb.auth.onAuthStateChange(ev=>{
