@@ -117,6 +117,18 @@ canvas{max-height:280px}
 .lg{display:inline-flex;align-items:center;gap:6px;font-size:13px;margin-right:12px}
 .sw{width:14px;height:14px;border-radius:4px;display:inline-block}
 .ev[style]{font-weight:500}
+a.btn{text-decoration:none;display:inline-block}
+.sbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px}
+.sbi{border:1.5px solid var(--line);background:var(--soft);border-radius:12px;padding:0;cursor:zoom-in;overflow:hidden;display:block;width:100%}
+.sbi:hover{border-color:var(--o)}
+.sbi img{width:100%;height:180px;object-fit:contain;display:block}
+.lb{position:fixed;inset:0;background:#120a06f2;z-index:300;display:flex;flex-direction:column}
+.lb[hidden]{display:none}
+.lbbar{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:10px 14px;color:#fff}
+.lbi{flex:1;overflow:auto;display:flex;padding:8px}
+.lbn{position:fixed;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;border:0;background:#ffffffd9;color:var(--ink);font-size:28px;cursor:pointer;line-height:1}
+.lbn.l{left:12px}.lbn.r{right:12px}
+.lb button:focus-visible,.lb a:focus-visible{outline:3px solid var(--y);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -138,6 +150,7 @@ canvas{max-height:280px}
 <div id="auth"></div>
 <div class="modal" id="modal"><div class="sheet" id="sheet"></div></div>
 <div class="toast" id="toast"></div>
+<div class="lb" id="lb" role="dialog" aria-modal="true" aria-label="ดูรูปเต็ม" hidden></div>
 
 <script>
 /* ============ ตั้งค่า Supabase ============ */
@@ -145,8 +158,8 @@ const SUPABASE_URL='https://pfpgecavzrrbathvdimg.supabase.co';
 const SUPABASE_KEY='sb_publishable_1T8cxx8qFEPQnlWcHKh_IA_s9-H9jZ2';
 
 /* ============ ปรับแต่งหน้าตา ============ */
-const LOGO_URL='Ranprajam bg logo.png';        // ชื่อไฟล์โลโก้ เช่น 'logo.png' (อัปโหลดไว้ใน repo ข้าง index.html) เว้นว่างเพื่อใช้โลโก้เดิม
-const PLACEHOLDER='Ranprajam bg logo.png';   // สัญลักษณ์ที่แสดงเมื่อคอนเทนต์ยังไม่มีรูป
+const LOGO_URL='';        // ชื่อไฟล์โลโก้ เช่น 'logo.png' (อัปโหลดไว้ใน repo ข้าง index.html) เว้นว่างเพื่อใช้โลโก้เดิม
+const PLACEHOLDER='🍔';   // สัญลักษณ์ที่แสดงเมื่อคอนเทนต์ยังไม่มีรูป
 /* ================================================================ */
 
 const ST=[['todo','รอทำ'],['doing','กำลังทำ'],['review','รอตรวจ'],['done','เสร็จแล้ว']];
@@ -155,10 +168,11 @@ const PF=['Facebook','Instagram','TikTok'];
 const PC={Facebook:'#1877F2',Instagram:'#E1306C',TikTok:'#111111'};
 const DW=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TABLES=['contents','tasks'];
+const BUCKET='storyboards';
 const td=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const configured=!/YOUR-/.test(SUPABASE_URL+SUPABASE_KEY);
 const sb=configured?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
-let S={contents:[],tasks:[]},PR=[],ME=null,view='dash',calM=new Date(),charts=[],cf='all',mv='all',tpf='all',tpv='all',fsel=null,fTmp={},pfv='all',hpf='all',tm='eng',tmpImg='',tmpPfs=[],chan=null,tmr=null;
+let S={contents:[],tasks:[]},PR=[],ME=null,view='dash',calM=new Date(),charts=[],cf='all',mv='all',tpf='all',tpv='all',fsel=null,fTmp={},pfv='all',hpf='all',tm='eng',tmpImg='',tmpPfs=[],pendStory=[],tmpLinks=[],storyId=null,storyBack='dash',storyUrls=[],lbI=0,lbZ=1,chan=null,tmr=null;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $=s=>document.querySelector(s);
 const isAdmin=()=>!!ME&&ME.role==='admin';
@@ -196,7 +210,7 @@ function pfTabs(){return`<div class="row" style="margin-bottom:16px"><button cla
 async function loadAll(){
  const rs=await Promise.all(TABLES.map(t=>sb.from(t).select('id,data').order('id')));
  rs.forEach((r,i)=>{if(r.error)toast('โหลดข้อมูลไม่สำเร็จ: '+r.error.message);else S[TABLES[i]]=r.data.map(x=>{const o={...x.data,id:x.id};
-  if(TABLES[i]==='contents'){o.pfs=(o.pfs||(o.pf?[o.pf]:[])).filter(p=>PF.includes(p));o.stats=o.stats||{};o.cm=o.cm||[];o.type=o.type||''}return o})});
+  if(TABLES[i]==='contents'){o.pfs=(o.pfs||(o.pf?[o.pf]:[])).filter(p=>PF.includes(p));o.stats=o.stats||{};o.cm=o.cm||[];o.type=o.type||'';o.links=o.links||[];o.story=o.story||[]}return o})});
  if(isAdmin()){const r=await sb.from('profiles').select('*').order('created_at');if(!r.error)PR=r.data}
 }
 async function put(t,o){const {id,...d}=o;let r;
@@ -215,7 +229,7 @@ document.querySelectorAll('aside .nav').forEach(b=>b.onclick=()=>{view=b.dataset
 $('#modal').onclick=e=>{if(e.target.id==='modal')closeM()};
 const closeM=()=>$('#modal').classList.remove('on');
 const openM=h=>{$('#sheet').innerHTML=h;$('#modal').classList.add('on')};
-function render(){if(!ME)return;if(view==='admin'&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,admin}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
+function render(){if(!ME)return;if(view==='admin'&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,admin,story:storyPage}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
 function head(t,s,act=''){return`<div class="row" style="justify-content:space-between"><div><h1>${t}</h1><p class="sub">${s}</p></div>${act}</div>`}
 
 /* ============ หน้าแรก: ภาพรวมคอนเทนต์ ============ */
@@ -252,26 +266,98 @@ function drawPf(){$('#c_pfs').innerHTML=PF.map(p=>{const on=tmpPfs.includes(p);r
 function togglePf(p){tmpPfs=PF.filter(x=>x===p?!tmpPfs.includes(p):tmpPfs.includes(x));drawPf()}
 function collect(c){const v=i=>$('#'+i).value;Object.assign(c,{title:v('c_t'),cap:v('c_c'),note:v('c_n'),type:v('c_ty'),pfs:tmpPfs,date:v('c_d'),status:v('c_s'),img:tmpImg});delete c.pf;return c}
 function openContent(id,pre){
- const c=S.contents.find(x=>x.id===id)||{id:0,title:'',cap:'',img:'',type:'',pfs:[],stats:{},cm:[],date:'',status:pre||'idea',note:''};
- tmpImg=c.img||'';tmpPfs=[...c.pfs];
+ const c=S.contents.find(x=>x.id===id)||{id:0,title:'',cap:'',img:'',type:'',pfs:[],stats:{},cm:[],links:[],story:[],date:'',status:pre||'idea',note:''};
+ tmpImg=c.img||'';tmpPfs=[...c.pfs];pendStory=[];tmpLinks=c.links.map(l=>({...l,saved:true}));if(!tmpLinks.length)tmpLinks.push({url:'',label:'',saved:false});
  openM(`<h2 style="margin-top:0">${id?'แก้ไขคอนเทนต์':'เพิ่มคอนเทนต์ใหม่'}</h2><div class="grid" style="gap:10px">
  <div><label>ชื่อคอนเทนต์</label><input id="c_t" value="${esc(c.title)}"></div>
  <div><label>รูปตัวอย่าง</label><div id="c_prev" class="ci" style="aspect-ratio:auto;height:190px;border-radius:12px"></div>
  <div class="row" style="margin-top:6px"><label class="btn sm ghost" style="cursor:pointer;margin:0">เลือกรูป<input type="file" accept="image/*" style="display:none" onchange="pickImg(this)"></label><button class="btn sm ghost" onclick="tmpImg='';prevImg()">ลบรูป</button></div></div>
  <div><label>แคปชัน</label><textarea id="c_c" rows="4">${esc(c.cap)}</textarea></div>
- <div><label>ไอเดีย / โน้ตเพิ่มเติม</label><textarea id="c_n" rows="2">${esc(c.note)}</textarea></div>
+ <div><label>ไอเดีย / โน้ตเพิ่มเติม</label><textarea id="c_n" rows="2">${esc(c.note)}</textarea>
+ <div class="row" style="margin-top:6px"><label class="btn sm ghost" style="cursor:pointer;margin:0">+ เพิ่มรูปสตอรี่บอร์ด<input type="file" accept="image/*" multiple style="display:none" onchange="pickStory(this)"></label>${c.story.length?`<button type="button" class="btn sm alt" onclick="openStory(${id})">ดูสตอรี่บอร์ด (${c.story.length} รูป)</button>`:''}<span id="c_pend" class="sub" style="margin:0;font-size:12px"></span></div></div>
+ <div><label>ลิงก์อ้างอิง (Reference)</label><div id="c_links" class="grid" style="gap:6px;justify-items:start"></div></div>
  <div><label>โพสต์ลงแพลตฟอร์ม (เลือกได้หลายรายการ)</label><div class="row" id="c_pfs" style="margin-top:4px"></div></div>
  <div class="row"><div style="flex:1;min-width:140px"><label>ประเภทคอนเทนต์</label><select id="c_ty" style="width:100%"><option value="">ยังไม่ระบุ</option>${CTY.map(([k,l])=>`<option value="${k}" ${c.type===k?'selected':''}>${l}</option>`).join('')}</select></div>
  <div style="flex:1;min-width:140px"><label>วันที่โพสต์ (ไม่บังคับ)</label><input type="date" id="c_d" value="${c.date}"></div>
  <div style="flex:1;min-width:140px"><label>สถานะ</label><select id="c_s" style="width:100%">${CT.map(([k,l])=>`<option value="${k}" ${c.status===k?'selected':''}>${l}</option>`).join('')}</select></div></div>
  ${id?`<div><label>คอมเมนต์ (${c.cm.length})</label>${c.cm.map(m=>`<div class="cm"><small>${esc(m.a)}${m.r==='admin'?'<span class="rv">ผู้ตรวจ</span>':''}, ${esc(m.ts)}</small><br>${esc(m.t)}</div>`).join('')||'<p class="sub" style="margin:4px 0 8px">ยังไม่มีคอมเมนต์</p>'}<div class="row"><input id="cc_t" placeholder="เขียนคอมเมนต์ในชื่อ ${esc(ME.name)}" style="flex:1"><button class="btn sm" onclick="addCCm(${id})">ส่ง</button></div></div>`:'<p class="sub" style="margin:0">บันทึกคอนเทนต์ก่อน แล้วจะคอมเมนต์ได้ ส่วนผลตอบรับกรอกที่เมนู "ผลตอบรับ" หลังเปลี่ยนสถานะเป็นโพสต์แล้ว</p>'}
- <div class="row" style="justify-content:space-between"><div>${id&&isAdmin()?`<button class="btn ghost" onclick="delContent(${id})">ลบ</button>`:''}</div><div class="row"><button class="btn ghost" onclick="closeM()">ปิด</button><button class="btn" onclick="saveContent(${id})">บันทึก</button></div></div></div>`);prevImg();drawPf()}
+ <div class="row" style="justify-content:space-between"><div>${id&&isAdmin()?`<button class="btn ghost" onclick="delContent(${id})">ลบ</button>`:''}</div><div class="row"><button class="btn ghost" onclick="closeM()">ปิด</button><button class="btn" onclick="saveContent(${id})">บันทึก</button></div></div></div>`);prevImg();drawPf();drawLinks();drawPend()}
+async function finalize(c){collect(c);const L=readLinks();if(L.err){toast(L.err);return false}c.links=L.list;c.story=c.story||[];
+ if(pendStory.length)toast('กำลังอัปโหลดรูปสตอรี่บอร์ด...');
+ while(pendStory.length){const f=pendStory[0],path=`${Date.now()}-${Math.random().toString(36).slice(2,8)}.jpg`;
+  const r=await sb.storage.from(BUCKET).upload(path,f.blob,{contentType:'image/jpeg'});
+  if(r.error){toast('อัปโหลดรูปไม่สำเร็จ: '+r.error.message+' (ตรวจว่ารันไฟล์ storyboard.sql แล้ว)');return false}
+  c.story.push({p:path,n:f.name});pendStory.shift()}
+ return true}
 async function saveContent(id){if(!$('#c_t').value.trim())return toast('กรุณาใส่ชื่อคอนเทนต์');
- const c=S.contents.find(x=>x.id===id)||{cm:[],stats:{}};collect(c);
+ const c=S.contents.find(x=>x.id===id)||{cm:[],stats:{},story:[],links:[]};
+ if(!await finalize(c))return;
  if(await put('contents',c)){closeM();await loadAll();render();toast('บันทึกคอนเทนต์แล้ว')}}
-function addCCm(id){const x=$('#cc_t').value.trim();if(!x)return;const c=S.contents.find(y=>y.id===id);collect(c);
+async function addCCm(id){const x=$('#cc_t').value.trim();if(!x)return;const c=S.contents.find(y=>y.id===id);if(!await finalize(c))return;
  c.cm.push({a:ME.name,r:ME.role,t:x,ts:nowStr()});commit('contents',c,()=>openContent(id))}
 async function delContent(id){if(!isAdmin()||!confirm('ลบคอนเทนต์นี้?'))return;if(await del('contents',id)){closeM();await loadAll();render()}}
+
+/* ===== ลิงก์อ้างอิง: กรอกแล้วบันทึก จะกลายเป็นปุ่ม (ไม่แสดงลิงก์) ===== */
+const openUrl=u=>window.open(u,'_blank','noopener,noreferrer');
+const refName=(l,i)=>esc(l.label||'ลิงก์อ้างอิง '+(i+1));
+function openRef(cid,i){const c=S.contents.find(x=>x.id===cid);if(c&&c.links[i])openUrl(c.links[i].url)}
+function openTmp(i){if(tmpLinks[i])openUrl(tmpLinks[i].url)}
+function addLink(){tmpLinks.push({url:'',label:'',saved:false});drawLinks()}
+function rmLink(i){tmpLinks.splice(i,1);drawLinks()}
+function drawLinks(){const b=$('#c_links');if(!b)return;
+ b.innerHTML=tmpLinks.map((l,i)=>l.saved?
+  `<div class="row" style="gap:6px"><button type="button" class="btn alt" onclick="openTmp(${i})">${refName(l,i)} ↗</button><button type="button" class="btn sm ghost" aria-label="ลบลิงก์นี้" onclick="rmLink(${i})">ลบ</button></div>`:
+  `<div class="row" style="gap:6px;flex-wrap:nowrap;width:100%"><input type="text" inputmode="url" placeholder="วางลิงก์ เช่น https://..." value="${esc(l.url)}" oninput="tmpLinks[${i}].url=this.value" style="flex:2"><input placeholder="ชื่อปุ่ม (ไม่บังคับ)" value="${esc(l.label)}" oninput="tmpLinks[${i}].label=this.value" style="flex:1"><button type="button" class="btn sm ghost" aria-label="ลบแถวนี้" onclick="rmLink(${i})">ลบ</button></div>`).join('')+
+ `<button type="button" class="btn sm ghost" onclick="addLink()">+ เพิ่มลิงก์</button>`}
+function readLinks(){const list=[];
+ for(const l of tmpLinks){const raw=(l.url||'').trim();if(!raw)continue;let u;
+  try{u=new URL(/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)?raw:'https://'+raw)}catch(e){return{err:'ลิงก์ไม่ถูกต้อง: '+raw.slice(0,40)}}
+  if(!/^https?:$/.test(u.protocol))return{err:'ใช้ได้เฉพาะลิงก์ที่ขึ้นต้นด้วย http หรือ https'};
+  list.push({url:u.href,label:(l.label||'').trim().slice(0,30)})}
+ return{list}}
+const refBtns=c=>(c.links.length||c.story.length)?`<div class="row" style="margin-top:8px">${c.links.map((l,i)=>`<button class="btn sm alt" onclick="openRef(${c.id},${i})">${refName(l,i)} ↗</button>`).join('')}${c.story.length?`<button class="btn sm ghost" onclick="openStory(${c.id})">สตอรี่บอร์ด (${c.story.length})</button>`:''}</div>`:'';
+
+/* ===== สตอรี่บอร์ด: เก็บใน Supabase Storage ดูในหน้าแยก และขยายเต็มจอได้ ===== */
+function drawPend(){const e=$('#c_pend');if(!e)return;e.innerHTML=pendStory.length?`รออัปโหลด ${pendStory.length} รูป (จะอัปโหลดเมื่อกดบันทึก) <button type="button" class="link" onclick="pendStory=[];drawPend()">ล้าง</button>`:''}
+function compressImg(file,max=2000,q=.85){return new Promise((res,rej)=>{const r=new FileReader();r.onerror=()=>rej(new Error('อ่านไฟล์ไม่ได้'));
+ r.onload=()=>{const im=new Image();im.onerror=()=>rej(new Error('เปิดรูปนี้ไม่ได้'));
+  im.onload=()=>{const k=Math.min(1,max/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+   const g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.drawImage(im,0,0,c.width,c.height);
+   c.toBlob(b=>b?res(b):rej(new Error('แปลงรูปไม่ได้')),'image/jpeg',q)};im.src=r.result};r.readAsDataURL(file)})}
+const baseName=f=>f.name.replace(/\.[^.]+$/,'').slice(0,40)||'รูป';
+async function pickStory(inp){const fs=[...inp.files];inp.value='';for(const f of fs){try{pendStory.push({blob:await compressImg(f),name:baseName(f)})}catch(e){toast(e.message)}}drawPend()}
+function openStory(id){closeM();storyBack=view;storyId=id;view='story';document.querySelectorAll('aside .nav').forEach(x=>x.classList.remove('on'));render();scrollTo(0,0)}
+function storyClose(){const id=storyId;view=storyBack||'dash';document.querySelectorAll('aside .nav').forEach(x=>x.classList.toggle('on',x.dataset.v===view));render();if(id&&S.contents.some(c=>c.id===id))openContent(id)}
+function storyPage(){const c=S.contents.find(x=>x.id===storyId);
+ if(!c)return`<button class="btn ghost" onclick="storyClose()">← กลับ</button><p class="sub" style="margin-top:16px">ไม่พบคอนเทนต์นี้</p>`;
+ return`<div style="margin-bottom:12px"><button class="btn ghost" onclick="storyClose()">← กลับไปที่คอนเทนต์</button></div>`+
+ head('สตอรี่บอร์ด: '+esc(c.title),`${c.story.length} รูป คลิกที่รูปเพื่อขยายดูเต็มจอ`,`<label class="btn" style="cursor:pointer;margin:0">+ เพิ่มรูป<input type="file" accept="image/*" multiple style="display:none" onchange="storyAdd(this)"></label>`)+
+ `<div id="sb_grid" class="sbgrid">${c.story.length?'<p class="sub">กำลังโหลดรูป...</p>':'<div class="card"><p class="sub" style="margin:0">ยังไม่มีรูป กด "+ เพิ่มรูป" เพื่ออัปโหลดสตอรี่บอร์ด</p></div>'}</div>`}
+window.after_story=async()=>{const c=S.contents.find(x=>x.id===storyId);if(!c||!c.story.length)return;
+ const r=await sb.storage.from(BUCKET).createSignedUrls(c.story.map(x=>x.p),3600),g=$('#sb_grid');if(!g||view!=='story')return;
+ if(r.error||!r.data){g.innerHTML='<div class="card"><p class="sub" style="margin:0">โหลดรูปไม่ได้ ตรวจว่ารันไฟล์ storyboard.sql ใน Supabase แล้ว</p></div>';return}
+ storyUrls=r.data.map(x=>x.signedUrl||'');
+ g.innerHTML=c.story.map((it,i)=>storyUrls[i]?`<div><button class="sbi" onclick="openLb(${i})" aria-label="ขยายรูปที่ ${i+1}"><img src="${esc(storyUrls[i])}" alt="สตอรี่บอร์ดรูปที่ ${i+1}" loading="lazy"></button><div class="row" style="justify-content:space-between;margin-top:6px"><small>${i+1}. ${esc(it.n)}</small><button class="btn sm ghost" onclick="storyDel(${i})">ลบ</button></div></div>`:`<div class="card"><small>รูปที่ ${i+1} โหลดไม่ได้</small></div>`).join('')};
+async function storyAdd(inp){const c=S.contents.find(x=>x.id===storyId);if(!c)return;const fs=[...inp.files];inp.value='';if(!fs.length)return;toast('กำลังอัปโหลดรูป...');
+ for(const f of fs){try{const blob=await compressImg(f),path=`${Date.now()}-${Math.random().toString(36).slice(2,8)}.jpg`,r=await sb.storage.from(BUCKET).upload(path,blob,{contentType:'image/jpeg'});
+  if(r.error)throw r.error;c.story.push({p:path,n:baseName(f)})}catch(e){toast('อัปโหลดไม่สำเร็จ: '+e.message+' (ตรวจว่ารันไฟล์ storyboard.sql แล้ว)');break}}
+ if(await put('contents',c)){await loadAll();render();toast('เพิ่มรูปแล้ว')}}
+async function storyDel(i){const c=S.contents.find(x=>x.id===storyId);if(!c||!confirm('ลบรูปนี้ออกจากสตอรี่บอร์ด?'))return;
+ const r=await sb.storage.from(BUCKET).remove([c.story[i].p]);if(r.error)return toast('ลบรูปไม่สำเร็จ: '+r.error.message);
+ c.story.splice(i,1);if(await put('contents',c)){await loadAll();render()}}
+
+/* ===== ดูรูปเต็มจอ (ซูม เลื่อนดูรูปถัดไป) ===== */
+function openLb(i){lbI=i;lbZ=1;$('#lb').hidden=false;document.body.style.overflow='hidden';lbDraw()}
+function closeLb(){$('#lb').hidden=true;$('#lb').innerHTML='';document.body.style.overflow=''}
+function lbNav(d){const n=storyUrls.length;lbI=(lbI+d+n)%n;lbZ=1;lbDraw()}
+function lbZoom(d){lbZ=d===0?1:Math.min(5,Math.max(1,+(lbZ+d*.5).toFixed(1)));lbApply()}
+function lbToggle(){lbZ=lbZ===1?2.5:1;lbApply()}
+function lbApply(){const im=$('#lb_img');if(!im)return;
+ im.style.cssText=lbZ===1?'max-width:100%;max-height:100%;margin:auto;cursor:zoom-in':`width:${lbZ*100}%;max-width:none;max-height:none;margin:auto;cursor:zoom-out`;$('#lb_z').textContent=Math.round(lbZ*100)+'%'}
+function lbDraw(){const u=storyUrls[lbI];
+ $('#lb').innerHTML=`<div class="lbbar"><span>รูปที่ ${lbI+1} จาก ${storyUrls.length} <b id="lb_z">100%</b></span><span class="row"><button class="btn sm ghost" onclick="lbZoom(-1)" aria-label="ย่อ">−</button><button class="btn sm ghost" onclick="lbZoom(1)" aria-label="ขยาย">+</button><button class="btn sm ghost" onclick="lbZoom(0)">พอดีจอ</button><a class="btn sm ghost" href="${esc(u)}" target="_blank" rel="noopener noreferrer">เปิดรูปเต็มในแท็บใหม่</a><button class="btn sm" id="lb_x" onclick="closeLb()">ปิด</button></span></div><div class="lbi"><img id="lb_img" src="${esc(u)}" alt="สตอรี่บอร์ดรูปที่ ${lbI+1}" onclick="lbToggle()"></div>${storyUrls.length>1?`<button class="lbn l" onclick="lbNav(-1)" aria-label="รูปก่อนหน้า">‹</button><button class="lbn r" onclick="lbNav(1)" aria-label="รูปถัดไป">›</button>`:''}`;
+ lbApply();$('#lb_x').focus()}
+document.addEventListener('keydown',e=>{const L=$('#lb');if(!L||L.hidden)return;if(e.key==='Escape')closeLb();else if(e.key==='ArrowLeft'&&storyUrls.length>1)lbNav(-1);else if(e.key==='ArrowRight'&&storyUrls.length>1)lbNav(1)});
 
 /* ============ บอร์ดงาน ============ */
 function taskCard(t){return`<div class="task" onclick="openTask(${t.id})"><p>${esc(t.title)}</p><span class="tag ${t.pri==='high'?'hi':''}">${{high:'ด่วน',mid:'ปกติ',low:'ไม่รีบ'}[t.pri]}</span><span class="tag">${esc(t.who||'-')}</span>${t.due?`<span class="tag ${late(t)?'late':''}">${t.due}</span>`:''}<div class="bar"><i style="width:${prog(t)}%"></i></div></div>`}
@@ -318,7 +404,7 @@ function review(){
  (C.length?`<div class="grid" style="gap:12px;margin-bottom:24px">${C.map(c=>`<div class="card"><div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:14px">
  <div class="ci" style="width:110px;flex-shrink:0;border-radius:12px;aspect-ratio:1;font-size:32px">${c.img?`<img src="${c.img}" alt="">`:PLACEHOLDER}</div>
  <div style="flex:1;min-width:0"><div class="row tags" style="margin-bottom:6px">${c.type?ttag(c.type):''}<span class="tag">${c.date?'โพสต์ '+c.date:'ยังไม่กำหนดวันโพสต์'}</span></div>
- <h3 style="margin:0 0 6px">${esc(c.title)}</h3>${pfIcons(c)}<p style="margin:8px 0 0">${esc(c.cap)||'<span class="sub">ยังไม่มีแคปชัน</span>'}</p></div></div>
+ <h3 style="margin:0 0 6px">${esc(c.title)}</h3>${pfIcons(c)}<p style="margin:8px 0 0">${esc(c.cap)||'<span class="sub">ยังไม่มีแคปชัน</span>'}</p>${refBtns(c)}</div></div>
  ${c.cm.slice(-2).map(m=>`<div class="cm"><small>${esc(m.a)}${m.r==='admin'?'<span class="rv">ผู้ตรวจ</span>':''}, ${esc(m.ts)}</small><br>${esc(m.t)}</div>`).join('')}
  ${adm?`<input id="rc${c.id}" placeholder="คอมเมนต์ถึงทีม (ไม่บังคับ)" style="margin:8px 0"><div class="row"><button class="btn" onclick="rvContent(${c.id},1)">ผ่าน (พร้อมโพสต์)</button><button class="btn alt" onclick="rvContent(${c.id},0)">ส่งกลับแก้ไข</button><button class="btn ghost" onclick="openContent(${c.id})">เปิดดู</button></div>`:`<div class="row" style="margin-top:8px"><button class="btn ghost" onclick="openContent(${c.id})">เปิดดูและคอมเมนต์</button></div>`}</div>`).join('')}</div>`:'<div class="card" style="margin-bottom:24px"><p class="sub" style="margin:0">ยังไม่มีคอนเทนต์รอตรวจ กด "+ ส่งคอนเทนต์เข้าตรวจ" หรือเปลี่ยนสถานะที่การ์ดคอนเทนต์เป็น "รอตรวจ"</p></div>')+
  `<h3>งานรอตรวจ (${L.length})</h3>`+
