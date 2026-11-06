@@ -142,6 +142,13 @@ a.btn{text-decoration:none;display:inline-block}
 .swb i{width:24px;height:24px;border-radius:50%;border:1.5px solid #2b1b1233;display:inline-block}
 .swb.on{border-color:var(--ink);font-weight:700}
 .swb:focus-visible{outline:3px solid var(--ink);outline-offset:2px}
+.wgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px}
+.wc{border:1.5px solid var(--line);border-radius:16px;background:#fff;overflow:hidden;display:flex;flex-direction:column}
+.wc .ci{aspect-ratio:16/9;font-size:40px}
+.wb{padding:14px;display:grid;gap:10px}
+.wcap{margin:0;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.wn{white-space:pre-wrap;word-break:break-word;margin:2px 0 0;font-size:13px;background:var(--soft);border-radius:10px;padding:8px 10px;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
+.wh{margin:24px 0 10px;display:flex;align-items:center;gap:8px;font-size:17px}
 </style>
 </head>
 <body>
@@ -153,6 +160,7 @@ a.btn{text-decoration:none;display:inline-block}
   <button class="nav on" data-v="dash">ภาพรวมคอนเทนต์</button>
   <button class="nav" data-v="board">บอร์ดงาน</button>
   <button class="nav" data-v="cal">ตารางคอนเทนต์</button>
+  <button class="nav" data-v="wait">คอนเทนต์รอถ่าย<span id="waitN"></span></button>
   <button class="nav" data-v="review">ตรวจงาน</button>
   <button class="nav" data-v="feedback">ผลตอบรับ</button>
   <button class="nav" data-v="ins">ข้อมูลเชิงลึก</button>
@@ -176,7 +184,7 @@ const PLACEHOLDER='🍔';   // สัญลักษณ์ที่แสดง�
 /* ================================================================ */
 
 const ST=[['todo','รอทำ'],['doing','กำลังทำ'],['review','รอตรวจ'],['done','เสร็จแล้ว']];
-const CT=[['idea','ไอเดีย','#e9e2cf'],['draft','ร่างแคปชัน','#ffe066'],['shoot','กำลังผลิต','#ffb347'],['review','รอตรวจ','#ff8a3d'],['ready','พร้อมโพสต์','#F94D12'],['posted','โพสต์แล้ว','#2e9e5b']];
+const CT=[['idea','ไอเดีย','#e9e2cf'],['draft','ร่างแคปชัน','#ffe066'],['wait','รอถ่ายทำ','#9AD0F5'],['shoot','กำลังผลิต','#ffb347'],['review','รอตรวจ','#ff8a3d'],['ready','พร้อมโพสต์','#F94D12'],['posted','โพสต์แล้ว','#2e9e5b']];
 const PF=['Facebook','Instagram','TikTok'];
 const PC={Facebook:'#1877F2',Instagram:'#E1306C',TikTok:'#111111'};
 const DW=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
@@ -185,7 +193,7 @@ const BUCKET='storyboards';
 const td=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
 const configured=!/YOUR-/.test(SUPABASE_URL+SUPABASE_KEY);
 const sb=configured?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
-let S={contents:[],tasks:[],notes:[]},notesOk=true,nf='all',noteColor='yellow',PR=[],ME=null,view='dash',calM=new Date(),charts=[],cf='all',mv='all',tpf='all',tpv='all',fsel=null,fTmp={},pfv='all',hpf='all',tm='eng',tmpImg='',tmpPfs=[],pendStory=[],tmpLinks=[],storyId=null,storyBack='dash',storyUrls=[],lbI=0,lbZ=1,chan=null,tmr=null;
+let S={contents:[],tasks:[],notes:[]},notesOk=true,nf='all',noteColor='yellow',wg='type',pm='all',PR=[],ME=null,view='dash',calM=new Date(),charts=[],cf='all',mv='all',tpf='all',tpv='all',fsel=null,fTmp={},pfv='all',hpf='all',tm='eng',tmpImg='',tmpPfs=[],pendStory=[],tmpLinks=[],storyId=null,storyBack='dash',storyUrls=[],lbI=0,lbZ=1,chan=null,tmr=null;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $=s=>document.querySelector(s);
 const isAdmin=()=>!!ME&&ME.role==='admin';
@@ -197,7 +205,8 @@ const short=t=>t.length>14?t.slice(0,13)+'…':t;
 
 /* ===== โลโก้ ===== */
 const logoSvg=(bg,z)=>`<svg width="${z}" height="${z}" viewBox="0 0 42 42" aria-hidden="true"><rect width="42" height="42" rx="10" fill="${bg}"/><path d="M21 6C12 6 8 13 7 19h14z" fill="#F94D12"/><rect x="8" y="22" width="13" height="6" rx="2" fill="#F94D12"/><path d="M9 31l12 4v1C14 36 9 34 9 31z" fill="#F94D12"/></svg>`;
-const logoHTML=(z,bg)=>LOGO_URL?`<img src="${esc(LOGO_URL)}" width="${z}" height="${z}" alt="โลโก้ Behind Ranprajam Burger" style="display:block;border-radius:10px;object-fit:cover">`:logoSvg(bg,z);
+const logoFallback=(el,z,bg)=>{el.outerHTML=logoSvg(bg,z)};
+const logoHTML=(z,bg)=>LOGO_URL?`<img src="${esc(LOGO_URL)}" width="${z}" height="${z}" alt="โลโก้ Behind Ranprajam Burger" onerror="logoFallback(this,${z},'${bg}')" style="display:block;border-radius:10px;object-fit:cover">`:logoSvg(bg,z);
 
 /* ===== ประเภทคอนเทนต์ และไอคอนแพลตฟอร์ม ===== */
 const CTY=[['case','เล่าเคส'],['fun','อินเตอร์เทน'],['bts','เบื้องหลัง'],['qa','ตอบคำถาม'],['edu','สอน'],['sell','ขายของ']];
@@ -243,12 +252,13 @@ document.querySelectorAll('aside .nav').forEach(b=>b.onclick=()=>{view=b.dataset
 $('#modal').onclick=e=>{if(e.target.id==='modal')closeM()};
 const closeM=()=>$('#modal').classList.remove('on');
 const openM=h=>{$('#sheet').innerHTML=h;$('#modal').classList.add('on')};
-function render(){if(!ME)return;if(view==='admin'&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,admin,story:storyPage}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
+function render(){if(!ME)return;waitBadge();if(view==='admin'&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,admin,wait:waitPage,story:storyPage}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
 function head(t,s,act=''){return`<div class="row" style="justify-content:space-between"><div><h1>${t}</h1><p class="sub">${s}</p></div>${act}</div>`}
 
 /* ============ หน้าแรก: ภาพรวมคอนเทนต์ ============ */
 const stOf=k=>CT.find(x=>x[0]===k)||CT[0];
 const monthKey=c=>c.date?c.date.slice(0,7):'none';
+const mLong=k=>new Date(k+'-01').toLocaleDateString('th-TH',{month:'long',year:'numeric'});
 const mLabel=k=>new Date(k+'-01').toLocaleDateString('th-TH',{month:'short',year:'2-digit'});
 const nowStr=()=>new Date().toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'});
 function cCard(c){const [,l,col]=stOf(c.status);
@@ -430,6 +440,35 @@ async function noteToContent(id){const n=S.notes.find(x=>x.id===id);if(!n)return
  const c={title:n.text.split('\n')[0].trim().slice(0,60)||'ไอเดียจากโน๊ต',cap:'',note:n.text,img:'',type:'',pfs:[],stats:{},cm:[],links:[],story:[],date:'',status:'idea'};
  if(await put('contents',c)){closeM();await loadAll();render();toast('สร้างคอนเทนต์ไอเดียแล้ว ดูได้ที่หน้าภาพรวมคอนเทนต์ (โน๊ตเดิมยังอยู่)')}}
 
+/* ============ คอนเทนต์รอถ่าย ============ */
+const waitList=()=>S.contents.filter(c=>c.status==='wait');
+function waitBadge(){const e=$('#waitN');if(!e)return;const n=waitList().length;e.innerHTML=n?`<span class="badge">${n}</span>`:''}
+const byDate=(a,b)=>(a.date||'9').localeCompare(b.date||'9');
+function waitGroups(L){
+ if(wg==='none')return[['คอนเทนต์รอถ่ายทั้งหมด',null,[...L].sort(byDate)]];
+ const G=new Map(),add=(k,label,color,c)=>{if(!G.has(k))G.set(k,{label,color,list:[]});G.get(k).list.push(c)};
+ L.forEach(c=>{
+  if(wg==='type')add(c.type||'~',c.type?tyName(c.type):'ยังไม่ระบุประเภท',tyColor(c.type),c);
+  else if(wg==='pf'){if(c.pfs.length)c.pfs.forEach(p=>add(p,p,PC[p],c));else add('~','ยังไม่เลือกแพลตฟอร์ม','#7a6a60',c)}
+  else add(c.date?monthKey(c):'~',c.date?mLong(monthKey(c)):'ยังไม่กำหนดวันโพสต์','#7a6a60',c)});
+ const order=wg==='type'?[...CTY.map(x=>x[0]),'~']:wg==='pf'?[...PF,'~']:null;
+ const keys=order?order.filter(k=>G.has(k)):[...G.keys()].sort((a,b)=>a==='~'?1:b==='~'?-1:a.localeCompare(b));
+ return keys.map(k=>{const g=G.get(k);return[g.label,g.color,g.list.sort(byDate)]})}
+const waitCard=c=>`<div class="wc"><div class="ci">${c.img?`<img src="${c.img}" alt="">`:PLACEHOLDER}</div><div class="wb">
+ <div class="row tags">${c.type?ttag(c.type):''}<span class="tag">${c.date?'โพสต์ '+c.date:'ยังไม่กำหนดวันโพสต์'}</span></div>
+ <b style="font-size:16px">${esc(c.title)}</b>${pfIcons(c)}
+ ${c.cap?`<p class="wcap">${esc(c.cap)}</p>`:''}
+ ${c.note?`<div><label>ไอเดีย / โน้ตเพิ่มเติม</label><p class="wn">${esc(c.note)}</p></div>`:''}
+ ${refBtns(c)}
+ <div class="row" style="justify-content:space-between"><small style="color:var(--mut)">${c.cm.length} คอมเมนต์</small><div class="row"><button class="btn sm ghost" onclick="openContent(${c.id})">ดูรายละเอียด / แก้ไข</button><button class="btn sm" onclick="startShoot(${c.id})">เริ่มถ่ายทำ</button></div></div></div></div>`;
+function startShoot(id){const c=S.contents.find(x=>x.id===id);if(!c)return;c.status='shoot';commit('contents',c,()=>toast('ย้ายไปสถานะ "กำลังผลิต" แล้ว'))}
+function waitPage(){
+ const L=waitList(),G=waitGroups(L);
+ return head('คอนเทนต์รอถ่าย','รายละเอียดคอนเทนต์ที่เตรียมไว้และรอถ่ายทำ เมื่อเริ่มถ่ายกด "เริ่มถ่ายทำ" เพื่อย้ายไปสถานะกำลังผลิต',`<button class="btn" onclick="openContent(0,'wait')">+ เพิ่มคอนเทนต์รอถ่าย</button>`)+
+ `<div class="row" style="margin-bottom:6px"><span class="sub" style="margin:0">แบ่งตาม</span><select aria-label="แบ่งกลุ่มตาม" onchange="wg=this.value;render()">${[['type','ประเภทคอนเทนต์'],['pf','แพลตฟอร์ม'],['month','เดือนที่จะโพสต์'],['none','ไม่แบ่ง']].map(([k,l])=>`<option value="${k}" ${wg===k?'selected':''}>${l}</option>`).join('')}</select><span class="sub" style="margin:0">ทั้งหมด ${L.length} รายการ</span></div>`+
+ (wg==='pf'&&L.length?'<p class="sub" style="margin:0;font-size:13px">คอนเทนต์ที่โพสต์หลายแพลตฟอร์มจะแสดงในทุกกลุ่มที่เกี่ยวข้อง</p>':'')+
+ (L.length?G.map(([label,color,list])=>`<h3 class="wh">${color?`<i class="sw" style="background:${color}"></i>`:''}${esc(label)} <span class="tag">${list.length}</span></h3><div class="wgrid">${list.map(waitCard).join('')}</div>`).join(''):'<div class="card" style="margin-top:12px"><p class="sub" style="margin:0">ยังไม่มีคอนเทนต์รอถ่าย กด "+ เพิ่มคอนเทนต์รอถ่าย" หรือเปลี่ยนสถานะที่การ์ดคอนเทนต์เป็น "รอถ่ายทำ"</p></div>')}
+
 /* ============ ตารางคอนเทนต์ ============ */
 function cal(){
  const y=calM.getFullYear(),m=calM.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
@@ -520,10 +559,12 @@ window.after_ins=()=>{chartPlatform('c1');
 
 /* ============ คอนเทนต์ยอดนิยม 1 ถึง 3 (แสดงในหน้าภาพรวม) ============ */
 function popular(){
- const G={};entries(hpf,'all').forEach(e=>(G[e.c.id]=G[e.c.id]||{c:e.c,list:[]}).list.push(e));
+ const ms=[...new Set(entries('all','all').filter(e=>e.c.date).map(e=>monthKey(e.c)))].sort();if(pm!=='all'&&!ms.includes(pm))pm='all';
+ const G={};entries(hpf,'all').filter(e=>pm==='all'||monthKey(e.c)===pm).forEach(e=>(G[e.c.id]=G[e.c.id]||{c:e.c,list:[]}).list.push(e));
  const R=Object.values(G).map(g=>({...g,a:agg(g.list)})).filter(g=>g.a[tm]>0).sort((x,y)=>y.a[tm]-x.a[tm]).slice(0,3);
  const M=[['eng','ยอดปฏิสัมพันธ์'],['reach','การเข้าถึง (Reach)'],['rate','Engagement rate']];
- return `<h2 style="margin:28px 0 4px">คอนเทนต์ยอดนิยม 3 อันดับ</h2><p class="sub" style="margin-bottom:12px">จัดอันดับจากผลตอบรับที่กรอกไว้ในเมนู "ผลตอบรับ"</p>
+ return `<h2 style="margin:28px 0 4px">คอนเทนต์ยอดนิยม 3 อันดับ${pm==='all'?'':' ประจำเดือน '+mLong(pm)}</h2><p class="sub" style="margin-bottom:12px">จัดอันดับจากผลตอบรับที่กรอกไว้ในเมนู "ผลตอบรับ" เลือกดูเป็นรายเดือนได้ (นับตามวันที่โพสต์ของคอนเทนต์)</p>
+ <div class="mrow" role="group" aria-label="เลือกเดือนของคอนเทนต์ยอดนิยม"><button class="chip ${pm==='all'?'on':''}" onclick="pm='all';render()">ทุกเดือน</button>${ms.map(k=>`<button class="chip ${pm===k?'on':''}" onclick="pm='${k}';render()">${mLabel(k)}</button>`).join('')}</div>
  <div class="row" style="margin-bottom:12px"><button class="chip ${hpf==='all'?'on':''}" onclick="hpf='all';render()">ทุกแพลตฟอร์ม</button>${PF.map(p=>`<button class="chip ${hpf===p?'on':''}" onclick="hpf='${p}';render()"><span class="pic" style="vertical-align:middle">${ic(p,16)}</span> ${p}</button>`).join('')}</div>
  <div class="row" style="margin-bottom:16px"><span class="sub" style="margin:0">จัดอันดับตาม</span>${M.map(([k,l])=>`<button class="chip ${tm===k?'on':''}" onclick="tm='${k}';render()">${l}</button>`).join('')}</div>`+
  (R.length?`<div class="podium">${R.map((g,i)=>{const c=g.c,a=g.a;return`<button class="cc ${i?'':'first'}" onclick="openContent(${c.id})"><div class="ci">${c.img?`<img src="${c.img}" alt="">`:PLACEHOLDER}<span class="rk" aria-label="อันดับ ${i+1}">${i+1}</span></div><div class="cb"><div class="row tags">${c.type?`${ttag(c.type)}`:''}</div><b>${esc(c.title)}</b><p>${esc(c.cap)||'ยังไม่มีแคปชัน'}</p>
