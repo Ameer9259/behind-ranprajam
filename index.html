@@ -150,6 +150,8 @@ a.btn{text-decoration:none;display:inline-block}
 .wn{white-space:pre-wrap;word-break:break-word;margin:2px 0 0;font-size:13px;background:var(--soft);border-radius:10px;padding:8px 10px;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
 .wh{margin:24px 0 10px;display:flex;align-items:center;gap:8px;font-size:17px}
 .fixnote{background:#FDE4F0;border-left:5px solid #E879A9;padding:8px 12px;border-radius:0 10px 10px 0;font-size:14px;white-space:pre-wrap;word-break:break-word}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.nnew{background:var(--ink);color:#fff;border-radius:99px;padding:0 8px;font-size:11px;margin-left:4px}
 </style>
 </head>
 <body>
@@ -159,7 +161,7 @@ a.btn{text-decoration:none;display:inline-block}
     <div>Behind<small>Ranprajam Burger</small></div>
   </div>
   <button class="nav on" data-v="dash">ภาพรวมคอนเทนต์</button>
-  <button class="nav" data-v="board">บอร์ดงาน</button>
+  <button class="nav" data-v="board">บอร์ดงาน<span id="boardN"></span></button>
   <button class="nav" data-v="cal">ตารางคอนเทนต์</button>
   <button class="nav" data-v="wait">คอนเทนต์รอถ่าย<span id="waitN"></span></button>
   <button class="nav" data-v="review">ตรวจงาน<span id="revN"></span></button>
@@ -197,7 +199,7 @@ const td=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.getFullYea
 const curMonth=()=>td().slice(0,7);
 const configured=!/YOUR-/.test(SUPABASE_URL+SUPABASE_KEY);
 const sb=configured?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
-let S={contents:[],tasks:[],notes:[]},notesOk=true,nf='all',noteColor='yellow',wg='type',pm='all',PR=[],ME=null,view='dash',calM=new Date(),charts=[],cf='all',mv=curMonth(),tpf='all',tpv='all',fsel=null,fTmp={},pfv='all',hpf='all',tm='eng',tmpImg='',tmpPfs=[],pendStory=[],tmpLinks=[],storyId=null,storyBack='dash',storyUrls=[],lbI=0,lbZ=1,chan=null,tmr=null;
+let S={contents:[],tasks:[],notes:[]},notesOk=true,nf='all',noteColor='yellow',seenSet=new Set(),seenReady=false,wg='type',pm='all',PR=[],ME=null,view='dash',calM=new Date(),charts=[],cf='all',mv=curMonth(),tpf='all',tpv='all',fsel=null,fTmp={},pfv='all',hpf='all',tm='eng',tmpImg='',tmpPfs=[],pendStory=[],tmpLinks=[],storyId=null,storyBack='dash',storyUrls=[],lbI=0,lbZ=1,chan=null,tmr=null;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $=s=>document.querySelector(s);
 const isAdmin=()=>!!ME&&ME.role==='admin';
@@ -239,6 +241,7 @@ async function loadAll(){
  rs.forEach((r,i)=>{if(r.error)toast('โหลดข้อมูลไม่สำเร็จ: '+r.error.message);else S[TABLES[i]]=r.data.map(x=>{const o={...x.data,id:x.id};
   if(TABLES[i]==='contents'){o.pfs=(o.pfs||(o.pf?[o.pf]:[])).filter(p=>PF.includes(p));o.stats=o.stats||{};o.cm=o.cm||[];o.type=o.type||'';o.links=o.links||[];o.story=o.story||[]}return o})});
  if(isAdmin()){const r=await sb.from('profiles').select('*').order('created_at');if(!r.error)PR=r.data}
+ initSeen();
 }
 async function put(t,o){const {id,...d}=o;let r;
  if(id)r=await sb.from(t).update({data:d}).eq('id',id).select('id');
@@ -249,7 +252,7 @@ async function put(t,o){const {id,...d}=o;let r;
 async function del(t,id){const r=await sb.from(t).delete().eq('id',id).select('id');
  if(r.error||!r.data.length){toast('ลบไม่สำเร็จ (เฉพาะแอดมินที่ลบได้)');return false}return true}
 async function commit(t,o,after){if(await put(t,o)){await loadAll();render();if(after)after()}}
-function onChange(){clearTimeout(tmr);tmr=setTimeout(async()=>{await loadAll();pendBadge();const a=document.activeElement;if(a&&$('#app').contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;render()},500)}
+function onChange(){clearTimeout(tmr);tmr=setTimeout(async()=>{await loadAll();pendBadge();navBadges();const a=document.activeElement;if(a&&$('#app').contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;render()},500)}
 
 /* ============ UI พื้นฐาน ============ */
 document.querySelectorAll('aside .nav').forEach(b=>b.onclick=()=>{view=b.dataset.v;if(view==='dash')mv=curMonth();document.querySelectorAll('aside .nav').forEach(x=>x.classList.toggle('on',x===b));render()});
@@ -393,6 +396,7 @@ document.addEventListener('keydown',e=>{const L=$('#lb');if(!L||L.hidden)return;
 /* ============ บอร์ดงาน ============ */
 function taskCard(t){return`<div class="task" onclick="openTask(${t.id})"><p>${esc(t.title)}</p><span class="tag ${t.pri==='high'?'hi':''}">${{high:'ด่วน',mid:'ปกติ',low:'ไม่รีบ'}[t.pri]}</span><span class="tag">${esc(t.who||'-')}</span>${t.due?`<span class="tag ${late(t)?'late':''}">${t.due}</span>`:''}<div class="bar"><i style="width:${prog(t)}%"></i></div></div>`}
 function board(){return head('บอร์ดงาน','ติดตามสถานะงาน และจดโน๊ตไอเดียได้ที่บอร์ดโน๊ตด้านล่าง',`<button class="btn" onclick="openTask()">+ เพิ่มงาน</button>`)+
+ `<p class="sub" style="margin:-12px 0 16px;font-size:13px">ตัวเลขบนเมนู = งานที่ยังไม่เสร็จ <b>${S.tasks.filter(x=>x.status!=='done').length}</b> + โน๊ตใหม่จากสมาชิกที่ยังไม่ได้เปิดอ่าน <b>${unreadNotes().length}</b> (เมื่อเปิดอ่านโน๊ต ตัวเลขโน๊ตจะหายไป เหลือเฉพาะงานที่ยังไม่เสร็จ)</p>`+
  `<div class="grid board">${ST.map(([k,l])=>{const L=S.tasks.filter(t=>t.status===k);return`<div class="col"><h4>${l}<i>${L.length}</i></h4>${L.map(taskCard).join('')}</div>`}).join('')}</div>`+notesSection()}
 function openTask(id){
  const t=S.tasks.find(x=>x.id===id)||{id:0,title:'',desc:'',who:ME?ME.name:'',due:td(3),status:'todo',pri:'mid',chk:[],cm:[]};
@@ -422,15 +426,30 @@ function addCm(id){const x=$('#cm_t').value.trim();if(!x)return;const t=S.tasks.
 /* ============ บอร์ดโน๊ต (อยู่ใต้บอร์ดงาน) ============ */
 const NC=[['yellow','เหลือง','#FFE066'],['pink','ชมพู','#FFB8D0'],['blue','ฟ้า','#A8DCFF'],['green','เขียว','#B8EBA6'],['purple','ม่วง','#D5C2FF']];
 const ncOf=k=>NC.find(x=>x[0]===k)||NC[0];
-const noteCard=n=>`<button class="note" style="background:${ncOf(n.color)[2]}" onclick="openNote(${n.id})" aria-label="โน๊ตสี${ncOf(n.color)[1]} เปิดดูหรือแก้ไข"><span class="npin">${n.pin?'ปักหมุด':''}</span><span class="ntx">${esc(n.text)}</span><small>${esc(n.by||'')}${n.ts?', '+esc(n.ts):''}</small></button>`;
+/* นับโน๊ตใหม่ของสมาชิกคนอื่นที่ยังไม่ได้เปิดอ่าน (เก็บสถานะอ่านแล้วในเบราว์เซอร์ของแต่ละคน) */
+const seenKey=()=>'rj_seen_'+(ME?ME.id:'');
+function saveSeen(){try{localStorage.setItem(seenKey(),JSON.stringify([...seenSet]))}catch(e){}}
+function initSeen(){if(seenReady||!ME||!notesOk)return;seenReady=true;
+ let j=null;try{j=localStorage.getItem(seenKey())}catch(e){}
+ if(j){try{seenSet=new Set(JSON.parse(j));return}catch(e){}}
+ seenSet=new Set(S.notes.map(n=>n.id));saveSeen()}
+const isMine=n=>n.uid?n.uid===ME.id:n.by===ME.name;
+const isNewNote=n=>!isMine(n)&&!seenSet.has(n.id);
+const unreadNotes=()=>notesOk&&seenReady?S.notes.filter(isNewNote):[];
+function markSeen(id){if(seenSet.has(id))return false;seenSet.add(id);saveSeen();navBadges();return true}
+function markAllSeen(){unreadNotes().forEach(n=>seenSet.add(n.id));saveSeen();navBadges();render()}
+function boardBadge(){const e=$('#boardN');if(!e)return;const t=S.tasks.filter(x=>x.status!=='done').length,u=unreadNotes().length,n=t+u;
+ e.innerHTML=n?`<span class="badge">${n}<span class="vh"> (งานที่ยังไม่เสร็จ ${t}, โน๊ตใหม่ ${u})</span></span>`:''}
+const noteCard=n=>`<button class="note" style="background:${ncOf(n.color)[2]}" onclick="openNote(${n.id})" aria-label="โน๊ตสี${ncOf(n.color)[1]}${isNewNote(n)?' ใหม่':''} เปิดดูหรือแก้ไข"><span class="npin">${n.pin?'ปักหมุด':''}${isNewNote(n)?'<span class="nnew">ใหม่</span>':''}</span><span class="ntx">${esc(n.text)}</span><small>${esc(n.by||'')}${n.ts?', '+esc(n.ts):''}</small></button>`;
 function notesSection(){
  if(!notesOk)return`<h2 style="margin:34px 0 8px">บอร์ดโน๊ต</h2><div class="card"><p class="sub" style="margin:0">ยังไม่ได้ตั้งค่าที่เก็บโน๊ต เปิด Supabase แล้วไปที่ SQL Editor รันไฟล์ notes.sql หนึ่งครั้ง จากนั้นรีเฟรชหน้านี้</p></div>`;
  const L=S.notes.filter(n=>nf==='all'||n.color===nf).sort((a,b)=>(b.pin?1:0)-(a.pin?1:0)||b.id-a.id);
- return`<div class="row" style="justify-content:space-between;align-items:flex-start;margin-top:34px"><div><h2 style="margin:0">บอร์ดโน๊ต</h2><p class="sub" style="margin:2px 0 12px">จดไอเดียคอนเทนต์ที่ยังไม่อยากลงตาราง หรือข้อความอื่นๆ แยกสีตามหมวดที่คุณกำหนดเอง</p></div><button class="btn" onclick="openNote()">+ เพิ่มโน๊ต</button></div>
+ return`<div class="row" style="justify-content:space-between;align-items:flex-start;margin-top:34px"><div><h2 style="margin:0">บอร์ดโน๊ต${unreadNotes().length?` <span class="badge">${unreadNotes().length} ใหม่</span>`:''}</h2><p class="sub" style="margin:2px 0 12px">จดไอเดียคอนเทนต์ที่ยังไม่อยากลงตาราง หรือข้อความอื่นๆ แยกสีตามหมวดที่คุณกำหนดเอง</p></div><div class="row"><button class="btn" onclick="openNote()">+ เพิ่มโน๊ต</button>${unreadNotes().length?`<button class="btn ghost" onclick="markAllSeen()">อ่านแล้วทั้งหมด</button>`:''}</div></div>
  <div class="row" style="margin-bottom:14px"><button class="chip ${nf==='all'?'on':''}" onclick="nf='all';render()">ทุกสี ${S.notes.length}</button>${NC.map(([k,l,c])=>`<button class="chip ${nf===k?'on':''}" onclick="nf='${k}';render()"><i class="dot" style="background:${c}"></i>${l} ${S.notes.filter(n=>n.color===k).length}</button>`).join('')}</div>
  <div class="notes">${L.map(noteCard).join('')||'<div class="card"><p class="sub" style="margin:0">ยังไม่มีโน๊ต กด "+ เพิ่มโน๊ต" เพื่อเริ่มจด</p></div>'}</div>`}
 function drawNc(){$('#n_col').innerHTML=NC.map(([k,l,c])=>`<button type="button" class="swb ${noteColor===k?'on':''}" role="radio" aria-checked="${noteColor===k}" onclick="noteColor='${k}';drawNc()"><i style="background:${c}"></i>${l}</button>`).join('')}
 function openNote(id){
+ if(id&&markSeen(id))render();
  const n=S.notes.find(x=>x.id===id)||{id:0,text:'',color:nf!=='all'?nf:'yellow',pin:false};noteColor=n.color;
  openM(`<h2 style="margin-top:0">${id?'แก้ไขโน๊ต':'เพิ่มโน๊ตใหม่'}</h2><div class="grid" style="gap:12px">
  <div><label for="n_t">ข้อความ</label><textarea id="n_t" rows="7" placeholder="จดไอเดียหรือข้อความที่ต้องการ...">${esc(n.text)}</textarea></div>
@@ -438,7 +457,7 @@ function openNote(id){
  <label style="display:flex;gap:8px;align-items:center;font-size:14px;color:var(--ink)"><input type="checkbox" id="n_pin" style="width:auto" ${n.pin?'checked':''}> ปักหมุดไว้บนสุด</label>
  <div class="row" style="justify-content:space-between"><div class="row">${id?`<button class="btn ghost" onclick="delNote(${id})">ลบ</button><button class="btn ghost" onclick="noteToContent(${id})">ส่งเป็นคอนเทนต์ไอเดีย</button>`:''}</div><div class="row"><button class="btn ghost" onclick="closeM()">ปิด</button><button class="btn" onclick="saveNote(${id})">บันทึก</button></div></div></div>`);drawNc()}
 async function saveNote(id){const t=$('#n_t').value.trim();if(!t)return toast('พิมพ์ข้อความโน๊ตก่อน');
- const n=S.notes.find(x=>x.id===id)||{by:ME.name,ts:nowStr()};Object.assign(n,{text:t,color:noteColor,pin:$('#n_pin').checked});
+ const n=S.notes.find(x=>x.id===id)||{by:ME.name,uid:ME.id,ts:nowStr()};Object.assign(n,{text:t,color:noteColor,pin:$('#n_pin').checked});
  if(await put('notes',n)){closeM();await loadAll();render();toast('บันทึกโน๊ตแล้ว')}}
 async function delNote(id){if(!confirm('ลบโน๊ตนี้?'))return;if(await del('notes',id)){closeM();await loadAll();render()}}
 async function noteToContent(id){const n=S.notes.find(x=>x.id===id);if(!n)return;
@@ -447,7 +466,7 @@ async function noteToContent(id){const n=S.notes.find(x=>x.id===id);if(!n)return
 
 /* ============ คอนเทนต์รอถ่าย ============ */
 const waitList=()=>S.contents.filter(c=>c.status==='wait');
-function navBadges(){const set=(id,n)=>{const e=$('#'+id);if(e)e.innerHTML=n?`<span class="badge">${n}</span>`:''};set('waitN',waitList().length);set('revN',S.contents.filter(c=>c.status==='review').length);set('fixN',S.contents.filter(c=>c.status==='fix').length)}
+function navBadges(){const set=(id,n)=>{const e=$('#'+id);if(e)e.innerHTML=n?`<span class="badge">${n}</span>`:''};set('waitN',waitList().length);set('revN',S.contents.filter(c=>c.status==='review').length);set('fixN',S.contents.filter(c=>c.status==='fix').length);boardBadge()}
 const byDate=(a,b)=>(a.date||'9').localeCompare(b.date||'9');
 function waitGroups(L){
  if(wg==='none')return[['คอนเทนต์รอถ่ายทั้งหมด',null,[...L].sort(byDate)]];
@@ -670,7 +689,7 @@ if(LOGO_URL){const l=document.querySelector('link[rel=icon]');if(l)l.href=LOGO_U
  if(!configured)return authUI('login');
  sb.auth.onAuthStateChange(ev=>{
   if(ev==='PASSWORD_RECOVERY')setTimeout(newPw,300);
-  if(ev==='SIGNED_OUT'){ME=null;S={contents:[],tasks:[],notes:[]};PR=[];if(chan){sb.removeChannel(chan);chan=null}view='dash';mv=curMonth();$('#app').innerHTML='';authUI('login')}});
+  if(ev==='SIGNED_OUT'){ME=null;S={contents:[],tasks:[],notes:[]};PR=[];if(chan){sb.removeChannel(chan);chan=null}view='dash';mv=curMonth();seenSet=new Set();seenReady=false;$('#app').innerHTML='';authUI('login')}});
  const {data:{session}}=await sb.auth.getSession();
  session?enter():authUI('login')})();
 </script>
