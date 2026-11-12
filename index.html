@@ -149,6 +149,7 @@ a.btn{text-decoration:none;display:inline-block}
 .wcap{margin:0;font-size:14px;white-space:pre-wrap;word-break:break-word}
 .wn{white-space:pre-wrap;word-break:break-word;margin:2px 0 0;font-size:13px;background:var(--soft);border-radius:10px;padding:8px 10px;display:-webkit-box;-webkit-line-clamp:6;-webkit-box-orient:vertical;overflow:hidden}
 .wh{margin:24px 0 10px;display:flex;align-items:center;gap:8px;font-size:17px}
+.fixnote{background:#FDE4F0;border-left:5px solid #E879A9;padding:8px 12px;border-radius:0 10px 10px 0;font-size:14px;white-space:pre-wrap;word-break:break-word}
 </style>
 </head>
 <body>
@@ -161,7 +162,8 @@ a.btn{text-decoration:none;display:inline-block}
   <button class="nav" data-v="board">บอร์ดงาน</button>
   <button class="nav" data-v="cal">ตารางคอนเทนต์</button>
   <button class="nav" data-v="wait">คอนเทนต์รอถ่าย<span id="waitN"></span></button>
-  <button class="nav" data-v="review">ตรวจงาน</button>
+  <button class="nav" data-v="review">ตรวจงาน<span id="revN"></span></button>
+  <button class="nav" data-v="fix">ส่งแก้ไข<span id="fixN"></span></button>
   <button class="nav" data-v="feedback">ผลตอบรับ</button>
   <button class="nav" data-v="ins">ข้อมูลเชิงลึก</button>
   <button class="nav" data-v="admin" id="navAdmin" style="display:none">จัดการผู้ใช้<span id="pend"></span></button>
@@ -184,16 +186,18 @@ const PLACEHOLDER='🍔';   // สัญลักษณ์ที่แสดง�
 /* ================================================================ */
 
 const ST=[['todo','รอทำ'],['doing','กำลังทำ'],['review','รอตรวจ'],['done','เสร็จแล้ว']];
-const CT=[['idea','ไอเดีย','#e9e2cf'],['draft','ร่างแคปชัน','#ffe066'],['wait','รอถ่ายทำ','#9AD0F5'],['shoot','กำลังผลิต','#ffb347'],['review','รอตรวจ','#ff8a3d'],['ready','พร้อมโพสต์','#F94D12'],['posted','โพสต์แล้ว','#2e9e5b']];
+const CT=[['idea','ไอเดีย','#e9e2cf'],['draft','ร่างแคปชัน','#ffe066'],['wait','รอถ่ายทำ','#9AD0F5'],['shoot','กำลังผลิต','#ffb347'],['review','รอตรวจ','#ff8a3d'],['fix','ส่งแก้ไข','#E879A9'],['ready','พร้อมโพสต์','#F94D12'],['posted','โพสต์แล้ว','#2e9e5b']];
 const PF=['Facebook','Instagram','TikTok'];
 const PC={Facebook:'#1877F2',Instagram:'#E1306C',TikTok:'#111111'};
 const DW=['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์'];
 const TABLES=['contents','tasks'];
 const BUCKET='storyboards';
-const td=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)};
+const pad2=n=>String(n).padStart(2,'0');
+const td=(n=0)=>{const d=new Date();d.setDate(d.getDate()+n);return d.getFullYear()+'-'+pad2(d.getMonth()+1)+'-'+pad2(d.getDate())};
+const curMonth=()=>td().slice(0,7);
 const configured=!/YOUR-/.test(SUPABASE_URL+SUPABASE_KEY);
 const sb=configured?supabase.createClient(SUPABASE_URL,SUPABASE_KEY):null;
-let S={contents:[],tasks:[],notes:[]},notesOk=true,nf='all',noteColor='yellow',wg='type',pm='all',PR=[],ME=null,view='dash',calM=new Date(),charts=[],cf='all',mv='all',tpf='all',tpv='all',fsel=null,fTmp={},pfv='all',hpf='all',tm='eng',tmpImg='',tmpPfs=[],pendStory=[],tmpLinks=[],storyId=null,storyBack='dash',storyUrls=[],lbI=0,lbZ=1,chan=null,tmr=null;
+let S={contents:[],tasks:[],notes:[]},notesOk=true,nf='all',noteColor='yellow',wg='type',pm='all',PR=[],ME=null,view='dash',calM=new Date(),charts=[],cf='all',mv=curMonth(),tpf='all',tpv='all',fsel=null,fTmp={},pfv='all',hpf='all',tm='eng',tmpImg='',tmpPfs=[],pendStory=[],tmpLinks=[],storyId=null,storyBack='dash',storyUrls=[],lbI=0,lbZ=1,chan=null,tmr=null;
 const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const $=s=>document.querySelector(s);
 const isAdmin=()=>!!ME&&ME.role==='admin';
@@ -248,11 +252,11 @@ async function commit(t,o,after){if(await put(t,o)){await loadAll();render();if(
 function onChange(){clearTimeout(tmr);tmr=setTimeout(async()=>{await loadAll();pendBadge();const a=document.activeElement;if(a&&$('#app').contains(a)&&/INPUT|TEXTAREA|SELECT/.test(a.tagName))return;render()},500)}
 
 /* ============ UI พื้นฐาน ============ */
-document.querySelectorAll('aside .nav').forEach(b=>b.onclick=()=>{view=b.dataset.v;document.querySelectorAll('aside .nav').forEach(x=>x.classList.toggle('on',x===b));render()});
+document.querySelectorAll('aside .nav').forEach(b=>b.onclick=()=>{view=b.dataset.v;if(view==='dash')mv=curMonth();document.querySelectorAll('aside .nav').forEach(x=>x.classList.toggle('on',x===b));render()});
 $('#modal').onclick=e=>{if(e.target.id==='modal')closeM()};
 const closeM=()=>$('#modal').classList.remove('on');
 const openM=h=>{$('#sheet').innerHTML=h;$('#modal').classList.add('on')};
-function render(){if(!ME)return;waitBadge();if(view==='admin'&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,admin,wait:waitPage,story:storyPage}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
+function render(){if(!ME)return;navBadges();if(view==='admin'&&!isAdmin())view='dash';charts.forEach(c=>c.destroy());charts=[];const v={dash,board,cal,review,feedback,ins,admin,wait:waitPage,fix:fixPage,story:storyPage}[view];$('#app').innerHTML=v();if(window['after_'+view])window['after_'+view]()}
 function head(t,s,act=''){return`<div class="row" style="justify-content:space-between"><div><h1>${t}</h1><p class="sub">${s}</p></div>${act}</div>`}
 
 /* ============ หน้าแรก: ภาพรวมคอนเทนต์ ============ */
@@ -288,7 +292,8 @@ function pickImg(i){const f=i.files[0];if(!f)return;const r=new FileReader();
  r.onload=()=>{const im=new Image();im.onload=()=>{const k=Math.min(1,640/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*k;c.height=im.height*k;c.getContext('2d').drawImage(im,0,0,c.width,c.height);tmpImg=c.toDataURL('image/jpeg',.72);prevImg()};im.onerror=()=>toast('เปิดรูปนี้ไม่ได้');im.src=r.result};r.readAsDataURL(f)}
 function drawPf(){$('#c_pfs').innerHTML=PF.map(p=>{const on=tmpPfs.includes(p);return`<button type="button" class="pfb ${on?'on':''}" aria-pressed="${on}" onclick="togglePf('${p}')">${ic(p,22)}<span style="margin:0 8px 0 7px">${p}</span>${on?'✓':''}</button>`}).join('')}
 function togglePf(p){tmpPfs=PF.filter(x=>x===p?!tmpPfs.includes(p):tmpPfs.includes(x));drawPf()}
-function collect(c){const v=i=>$('#'+i).value;Object.assign(c,{title:v('c_t'),cap:v('c_c'),note:v('c_n'),type:v('c_ty'),pfs:tmpPfs,date:v('c_d'),status:v('c_s'),img:tmpImg});delete c.pf;return c}
+function collect(c){const v=i=>$('#'+i).value,was=c.status;Object.assign(c,{title:v('c_t'),cap:v('c_c'),note:v('c_n'),type:v('c_ty'),pfs:tmpPfs,date:v('c_d'),status:v('c_s'),img:tmpImg});delete c.pf;
+ if(c.status==='fix'&&was!=='fix'){c.fixAt=new Date().toISOString();c.rev=(c.rev||0)+1}else if(c.status!=='fix')delete c.fixAt;return c}
 function openContent(id,pre){
  const c=S.contents.find(x=>x.id===id)||{id:0,title:'',cap:'',img:'',type:'',pfs:[],stats:{},cm:[],links:[],story:[],date:'',status:pre||'idea',note:''};
  tmpImg=c.img||'';tmpPfs=[...c.pfs];pendStory=[];tmpLinks=c.links.map(l=>({...l,saved:true}));if(!tmpLinks.length)tmpLinks.push({url:'',label:'',saved:false});
@@ -442,7 +447,7 @@ async function noteToContent(id){const n=S.notes.find(x=>x.id===id);if(!n)return
 
 /* ============ คอนเทนต์รอถ่าย ============ */
 const waitList=()=>S.contents.filter(c=>c.status==='wait');
-function waitBadge(){const e=$('#waitN');if(!e)return;const n=waitList().length;e.innerHTML=n?`<span class="badge">${n}</span>`:''}
+function navBadges(){const set=(id,n)=>{const e=$('#'+id);if(e)e.innerHTML=n?`<span class="badge">${n}</span>`:''};set('waitN',waitList().length);set('revN',S.contents.filter(c=>c.status==='review').length);set('fixN',S.contents.filter(c=>c.status==='fix').length)}
 const byDate=(a,b)=>(a.date||'9').localeCompare(b.date||'9');
 function waitGroups(L){
  if(wg==='none')return[['คอนเทนต์รอถ่ายทั้งหมด',null,[...L].sort(byDate)]];
@@ -469,6 +474,25 @@ function waitPage(){
  (wg==='pf'&&L.length?'<p class="sub" style="margin:0;font-size:13px">คอนเทนต์ที่โพสต์หลายแพลตฟอร์มจะแสดงในทุกกลุ่มที่เกี่ยวข้อง</p>':'')+
  (L.length?G.map(([label,color,list])=>`<h3 class="wh">${color?`<i class="sw" style="background:${color}"></i>`:''}${esc(label)} <span class="tag">${list.length}</span></h3><div class="wgrid">${list.map(waitCard).join('')}</div>`).join(''):'<div class="card" style="margin-top:12px"><p class="sub" style="margin:0">ยังไม่มีคอนเทนต์รอถ่าย กด "+ เพิ่มคอนเทนต์รอถ่าย" หรือเปลี่ยนสถานะที่การ์ดคอนเทนต์เป็น "รอถ่ายทำ"</p></div>')}
 
+/* ============ ส่งแก้ไข (ผู้ตรวจส่งกลับ -> แก้เสร็จส่งตรวจใหม่ วนจนพร้อมโพสต์) ============ */
+const fixList=()=>S.contents.filter(c=>c.status==='fix').sort((a,b)=>(b.fixAt||'').localeCompare(a.fixAt||''));
+function fixCard(c){
+ const rv=[...c.cm].reverse().find(m=>m.r==='admin'&&!/^แก้ไขแล้ว/.test(m.t)),at=c.fixAt?new Date(c.fixAt).toLocaleString('th-TH',{dateStyle:'short',timeStyle:'short'}):'';
+ return`<div class="card" style="margin-bottom:14px"><div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:14px">
+ <div class="ci" style="width:110px;flex-shrink:0;border-radius:12px;aspect-ratio:1;font-size:32px">${c.img?`<img src="${c.img}" alt="">`:PLACEHOLDER}</div>
+ <div style="flex:1;min-width:0"><div class="row tags" style="margin-bottom:6px">${c.type?ttag(c.type):''}<span class="tag">${c.rev?'ส่งแก้ไขครั้งที่ '+c.rev:'ส่งแก้ไข'}</span>${at?`<span class="tag">ส่งมาเมื่อ ${esc(at)}</span>`:''}<span class="tag">${c.date?'โพสต์ '+c.date:'ยังไม่กำหนดวันโพสต์'}</span></div>
+ <h3 style="margin:0 0 6px">${esc(c.title)}</h3>${pfIcons(c)}
+ <div class="fixnote" style="margin-top:10px"><small style="color:var(--mut)">ข้อแก้ไขจากผู้ตรวจ${rv?', '+esc(rv.a)+', '+esc(rv.ts):''}</small><br>${rv?esc(rv.t):'ผู้ตรวจไม่ได้เขียนข้อแก้ไขไว้ เปิดดูคอมเมนต์ในการ์ดคอนเทนต์'}</div>
+ ${refBtns(c)}</div></div>
+ <input id="fx${c.id}" placeholder="บันทึกสิ่งที่แก้ไขแล้ว (ไม่บังคับ)" style="margin:10px 0 8px">
+ <div class="row"><button class="btn" onclick="resubmit(${c.id})">แก้เสร็จ ส่งตรวจอีกครั้ง</button><button class="btn ghost" onclick="openContent(${c.id})">ดูรายละเอียด / แก้ไข</button></div></div>`}
+function resubmit(id){const c=S.contents.find(x=>x.id===id);if(!c)return;const n=$('#fx'+id).value.trim();
+ c.status='review';delete c.fixAt;if(n)c.cm.push({a:ME.name,r:ME.role,t:'แก้ไขแล้ว: '+n,ts:nowStr()});
+ commit('contents',c,()=>toast('ส่งกลับไปหน้าตรวจงานแล้ว'))}
+function fixPage(){const L=fixList();
+ return head('ส่งแก้ไข','คอนเทนต์ที่ผู้ตรวจส่งกลับให้แก้ไข เรียงจากที่ส่งมาล่าสุด เมื่อแก้เสร็จกด "แก้เสร็จ ส่งตรวจอีกครั้ง" คอนเทนต์จะกลับไปหน้าตรวจงาน วนจนกว่าจะได้สถานะพร้อมโพสต์')+
+ `<h3>รอแก้ไข (${L.length})</h3>`+(L.length?L.map(fixCard).join(''):'<div class="card"><p class="sub" style="margin:0">ไม่มีคอนเทนต์ที่รอแก้ไข เมื่อผู้ตรวจกด "ส่งกลับแก้ไข" ที่หน้าตรวจงาน คอนเทนต์จะมาอยู่ที่นี่</p></div>')}
+
 /* ============ ตารางคอนเทนต์ ============ */
 function cal(){
  const y=calM.getFullYear(),m=calM.getMonth(),first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();
@@ -484,7 +508,7 @@ function review(){
  `<h3>คอนเทนต์รอตรวจ (${C.length})</h3>`+
  (C.length?`<div class="grid" style="gap:12px;margin-bottom:24px">${C.map(c=>`<div class="card"><div class="row" style="align-items:flex-start;flex-wrap:nowrap;gap:14px">
  <div class="ci" style="width:110px;flex-shrink:0;border-radius:12px;aspect-ratio:1;font-size:32px">${c.img?`<img src="${c.img}" alt="">`:PLACEHOLDER}</div>
- <div style="flex:1;min-width:0"><div class="row tags" style="margin-bottom:6px">${c.type?ttag(c.type):''}<span class="tag">${c.date?'โพสต์ '+c.date:'ยังไม่กำหนดวันโพสต์'}</span></div>
+ <div style="flex:1;min-width:0"><div class="row tags" style="margin-bottom:6px">${c.type?ttag(c.type):''}${c.rev?`<span class="tag">ผ่านการแก้ไข ${c.rev} ครั้ง</span>`:''}<span class="tag">${c.date?'โพสต์ '+c.date:'ยังไม่กำหนดวันโพสต์'}</span></div>
  <h3 style="margin:0 0 6px">${esc(c.title)}</h3>${pfIcons(c)}<p style="margin:8px 0 0">${esc(c.cap)||'<span class="sub">ยังไม่มีแคปชัน</span>'}</p>${refBtns(c)}</div></div>
  ${c.cm.slice(-2).map(m=>`<div class="cm"><small>${esc(m.a)}${m.r==='admin'?'<span class="rv">ผู้ตรวจ</span>':''}, ${esc(m.ts)}</small><br>${esc(m.t)}</div>`).join('')}
  ${adm?`<input id="rc${c.id}" placeholder="คอมเมนต์ถึงทีม (ไม่บังคับ)" style="margin:8px 0"><div class="row"><button class="btn" onclick="rvContent(${c.id},1)">ผ่าน (พร้อมโพสต์)</button><button class="btn alt" onclick="rvContent(${c.id},0)">ส่งกลับแก้ไข</button><button class="btn ghost" onclick="openContent(${c.id})">เปิดดู</button></div>`:`<div class="row" style="margin-top:8px"><button class="btn ghost" onclick="openContent(${c.id})">เปิดดูและคอมเมนต์</button></div>`}</div>`).join('')}</div>`:'<div class="card" style="margin-bottom:24px"><p class="sub" style="margin:0">ยังไม่มีคอนเทนต์รอตรวจ กด "+ ส่งคอนเทนต์เข้าตรวจ" หรือเปลี่ยนสถานะที่การ์ดคอนเทนต์เป็น "รอตรวจ"</p></div>')+
@@ -493,8 +517,9 @@ function review(){
  <p>${esc(t.desc)||'<span class="sub">ไม่มีรายละเอียด</span>'}</p><p class="sub" style="margin:0 0 8px">เช็คลิสต์ ${prog(t)}% และ ${t.cm.length} คอมเมนต์</p>
  ${adm?`<input id="rn${t.id}" placeholder="บันทึกผลการตรวจ / ข้อแก้ไข" style="margin-bottom:8px"><div class="row"><button class="btn" onclick="doReview(${t.id},1)">ผ่าน</button><button class="btn alt" onclick="doReview(${t.id},0)">ขอแก้ไข</button><button class="btn ghost" onclick="openTask(${t.id})">เปิดงาน</button></div>`:`<button class="btn ghost" onclick="openTask(${t.id})">เปิดงาน</button>`}</div>`).join(''):'<div class="card"><p class="sub" style="margin:0">ไม่มีงานรอตรวจ</p></div>')}
 function rvContent(id,ok){if(!isAdmin())return;const c=S.contents.find(x=>x.id===id),n=$('#rc'+id).value.trim();
- c.status=ok?'ready':'draft';if(n)c.cm.push({a:ME.name,r:ME.role,t:(ok?'ผ่าน: ':'ขอแก้ไข: ')+n,ts:nowStr()});
- commit('contents',c,()=>toast(ok?'อนุมัติคอนเทนต์แล้ว':'ส่งกลับให้แก้ไขแล้ว'))}
+ if(ok)c.status='ready';else{c.status='fix';c.fixAt=new Date().toISOString();c.rev=(c.rev||0)+1}
+ if(n)c.cm.push({a:ME.name,r:ME.role,t:(ok?'ผ่าน: ':'ขอแก้ไข: ')+n,ts:nowStr()});
+ commit('contents',c,()=>toast(ok?'อนุมัติคอนเทนต์แล้ว':'ส่งกลับให้แก้ไขแล้ว ไปดูได้ที่หน้า "ส่งแก้ไข"'))}
 function doReview(id,ok){if(!isAdmin())return;const t=S.tasks.find(x=>x.id===id),n=$('#rn'+id).value;
  t.status=ok?'done':'doing';if(n)t.cm.push({a:ME.name,t:(ok?'ผ่าน: ':'ขอแก้ไข: ')+n,ts:td()});
  commit('tasks',t,()=>toast(ok?'อนุมัติงานแล้ว':'ส่งกลับให้แก้ไขแล้ว'))}
@@ -645,7 +670,7 @@ if(LOGO_URL){const l=document.querySelector('link[rel=icon]');if(l)l.href=LOGO_U
  if(!configured)return authUI('login');
  sb.auth.onAuthStateChange(ev=>{
   if(ev==='PASSWORD_RECOVERY')setTimeout(newPw,300);
-  if(ev==='SIGNED_OUT'){ME=null;S={contents:[],tasks:[],notes:[]};PR=[];if(chan){sb.removeChannel(chan);chan=null}view='dash';$('#app').innerHTML='';authUI('login')}});
+  if(ev==='SIGNED_OUT'){ME=null;S={contents:[],tasks:[],notes:[]};PR=[];if(chan){sb.removeChannel(chan);chan=null}view='dash';mv=curMonth();$('#app').innerHTML='';authUI('login')}});
  const {data:{session}}=await sb.auth.getSession();
  session?enter():authUI('login')})();
 </script>
